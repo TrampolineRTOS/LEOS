@@ -1,0 +1,681 @@
+syntax sdml_syntax ("sdml_lexique.gLexique") :
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+nonterminal <expression> !@expression expr;
+nonterminal <expression_list> !@expressionList expList;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <start_symbol> !@os os:
+  @typeDeclarationMap typeDeclarations [emptyMap];
+  @varDeclarationMap varDeclarations [emptyMap];
+  @schedulerDeclarationMap schedulerDeclarations [emptyMap];
+  @transDeclarationMap transDeclarations [emptyMap];
+  @funcDeclarationMap funcDeclarations [emptyMap];
+  @backendDeclarationMap backendDeclarations [emptyMap];
+  
+  $os$; $identifier$ ?@lstring osName; ${$;
+  repeat
+  while <taskType_declaration> !?typeDeclarations;
+  while <cpuType_declaration> !?typeDeclarations;
+  while <var_declaration> !?varDeclarations;
+  while <scheduler_declaration> !?schedulerDeclarations;
+  while <trans_declaration> !?transDeclarations;
+  while <function_declaration> !?funcDeclarations;
+  while <backend_declaration> !?backendDeclarations;
+  end repeat;
+  $}$;
+    
+  os := [@os new
+          !osName
+          !typeDeclarations
+          !varDeclarations
+          !funcDeclarations
+          !schedulerDeclarations
+          !transDeclarations
+          !backendDeclarations
+        ];
+end rule ;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <taskType_declaration>
+  ?!@typeDeclarationMap declarations
+:
+  @lstring taskTypeName;
+  @lstringmap states;
+  @varDeclarationMap fields [emptyMap];
+  @lstring ancestor;
+  
+  $task$; $identifier$ ?taskTypeName; <state_list> ?states;
+  select
+    $extends$; $identifier$ ?ancestor;
+  or
+    ancestor := emptylstring[];
+  end select;
+  select
+    ${$;
+    repeat
+    while <var_declaration> !?fields;
+    end repeat;
+    $}$;
+  or end select;
+  #
+  # Allowed transition and associated code
+  #
+  <allowed_transitions> ?@transitionList transitions;
+
+  @taskDeclaration task := [@taskDeclaration new !taskTypeName !fields !transitions !ancestor !states];
+  [!?declarations putTaskType !taskTypeName !task];
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <cpuType_declaration>
+  ?!@typeDeclarationMap declarations
+:
+  $cpu$; $identifier$ ?@lstring cpuTypeName;
+  $with$; $identifier$ ?@lstring taskName;
+  <cpu_state_list> ?@acceptMap states;
+  @varDeclarationMap fields [emptyMap];
+  # compute the attributes of the running field
+  # this field is a scalar
+  # it accepts all the corresponding task states defined in the cpu states
+  @lstringmap acceptedStates [emptyMap];
+  foreach states do
+    cast accept:
+    when == @taskAcceptStatement tas do
+      [!?acceptedStates putState ![tas taskState]];
+    else end cast;
+  end foreach;
+  [!?fields putData
+    !lstringwith[!"running"]
+    ![@sdmlContainerVar new !lstringwith[!"running"] ![@sdmlTaskContainer new !taskName] !rwAccess[] !acceptedStates ![@sdmlOrderingList emptyList]]
+  ];
+  select
+    ${$;
+    repeat
+    while <var_declaration> !?fields;
+    end repeat;
+    $}$;
+  or end select;
+  <allowed_transitions> ?@transitionList transitions;
+  @cpuDeclaration cpu := [@cpuDeclaration new !cpuTypeName !fields !transitions !taskName !states];
+  [!?declarations putCpuType !cpuTypeName !cpu];
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <allowed_transitions> !@transitionList allowed:
+  $($;
+  allowed := [@transitionList emptyList];
+  repeat
+    $identifier$ ?@lstring source;
+    $->$;
+    $identifier$ ?@lstring destination;
+    @statementList statements [emptyList];
+    select
+      <statement_list> ?statements;
+    or end select;
+    allowed += !source !destination !statements;
+  while
+    $,$;
+  end repeat;
+  $)$;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <static_type> !@sdmlType type:
+  select
+    $int$; type := [@sdmlInteger new];
+  or
+    $unsigned$; type := [@sdmlUnsigned new];
+  or
+    $bool$; type := [@sdmlBool new];
+  or
+    $identifier$ ?@lstring typeName; type := [@sdmlCustom new !typeName];
+  end select;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <function_declaration> ?!@funcDeclarationMap declarations:
+  $function$;
+  <static_type> ?@sdmlType functionType;
+  $identifier$ ?@lstring functionName;
+  $($;
+  <argument_list> ?@argumentList arguments;
+  $)$;
+  <declaration_list> ?@varDeclarationMap functionLocals;
+  <statement_list> ?@statementList statements;
+  @funcDeclaration func := [@funcDeclaration new !functionName !functionType !arguments !functionLocals !statements];
+  [!?declarations putFunction !functionName !func];
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <argument_list> !@argumentList arguments:
+  arguments := [@argumentList emptyList];
+  repeat
+    <static_type> ?@sdmlType type;
+    $identifier$ ?@lstring name;
+    arguments += !name !type;
+  while $,$;
+  end repeat;
+end rule;
+
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <local_var_declaration> ?!@varDeclarationMap declarations:
+  select
+    $int$; $identifier$ ?@lstring varName; <access_right> ?@accessRight access;
+    [!?declarations putData !varName ![@builtInVar new !varName ![@sdmlInteger new] !access]];
+  or
+    $unsigned$; $identifier$ ?@lstring varName; <access_right> ?@accessRight access;
+    [!?declarations putData !varName ![@builtInVar new !varName ![@sdmlUnsigned new] !access]];
+  or
+    $bool$; $identifier$ ?@lstring varName; <access_right> ?@accessRight access;
+    [!?declarations putData !varName ![@builtInVar new !varName ![@sdmlBool new] !access]];
+  end select;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <var_declaration> ?!@varDeclarationMap declarations:
+  select
+    <local_var_declaration> !?declarations;
+  or
+    $timer$; $identifier$ ?@lstring varName;
+    [!?declarations putData !varName ![@builtInVar new !varName ![@sdmlTimer new] !rwAccess[]]];
+  or
+    <container_declaration> !?declarations;
+  end select;
+  $;$;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <container_declaration> ?!@varDeclarationMap declarations:
+    $container$;
+    $identifier$ ?@lstring typeName;
+    @lstringmap states [emptyMap];
+    @orderingList ordering [emptyList];
+    @sdmlType type;
+    select
+      $queue$;
+      type := [@sdmlCollection new !typeName];
+    or
+      type := [@sdmlCustom new !typeName];    
+    end select;
+    $identifier$ ?@lstring varName;
+    select
+      <state_list> ?states;
+    or end select;
+    select
+      $sorted$; $by$; <ordering_list> ?ordering;
+      if [type dynamicType] == `@sdmlCustom then
+        error here: "ordering is invalid for scalar containers";
+      end if;
+    or end select;
+    [!?declarations putData !varName ![@containerVar new !varName !type !rwAccess[] !states !ordering]];
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <trans_declaration> ?!@transDeclarationMap declarations:
+  $transitions$; $identifier$ ?@lstring transName; $($;
+  $identifier$ ?@lstring taskType;
+  $identifier$ ?@lstring taskName;
+  $)$; ${$;
+  @transitionList transitions [emptyList];
+  repeat
+  while
+    $identifier$ ?@lstring source;
+    $->$;
+    $identifier$ ?@lstring destination;
+    <statement_list> ?@statementList statements;
+    transitions += !source !destination !statements;
+  end repeat;
+  [!?declarations putTrans !transName ![@transDeclaration new !transName !taskType !taskName !transitions]];
+  $}$;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <state_list>
+  !@lstringmap states
+:
+  $[$;
+  states := [@lstringmap emptyMap];
+  repeat
+    $identifier$ ?@lstring stateName;
+    [!?states putState !stateName];
+  while
+    $,$;
+  end repeat;
+  $]$;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <cpu_state_list>
+  !@acceptMap states
+:
+  $[$;
+  states := [@acceptMap emptyMap];
+  repeat
+    @acceptStatement accept;
+    $identifier$ ?@lstring cpuStateName;
+    $:$;
+    select
+      $task$; $in$; $identifier$ ?@lstring taskStateName;
+      accept := [@taskAcceptStatement new !cpuStateName !taskStateName];
+    or
+      $empty$;
+      accept := [@emptyAcceptStatement new !cpuStateName];
+    end select;
+    [!?states putState !cpuStateName !accept];
+  while
+    $,$;
+  end repeat;
+  $]$;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <scheduler_declaration>
+  ?!@schedulerDeclarationMap declarations
+:
+  $scheduler$; $identifier$ ?@lstring schedulerName;
+  $with$; $identifier$ ?@lstring task;
+  $on$; $identifier$ ?@lstring cpu;
+  ${$;
+  @varDeclarationMap locals [emptyMap];
+  @methodDeclarationMap methods [emptyMap];
+  repeat
+  while
+    $method$; $identifier$ ?@lstring methodName;
+    <declaration_list> ?@varDeclarationMap methodLocals;
+    <statement_list> ?@statementList statements;
+    [!?methods putMethod !methodName ![@methodDeclaration new !methodName !methodLocals !statements]];
+  while
+    $init$; @lstring methodName := [@lstring new !"init" !here];
+    <declaration_list> ?@varDeclarationMap methodLocals;
+    <statement_list> ?@statementList statements;
+    [!?methods putMethod !methodName ![@methodDeclaration new !methodName !methodLocals !statements]];
+  while
+    <var_declaration> !?locals;
+  end repeat;
+  $}$;
+  [!?declarations putScheduler !schedulerName ![@schedulerDeclaration new !schedulerName !task !cpu !locals !methods]];
+end rule;
+  
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <backend_declaration> ?!@backendDeclarationMap declarations:
+  $backend$;
+  $identifier$ ?@lstring backendName;
+  $($;
+  <argument_list> ?@argumentList arguments;
+  $)$;
+  ${$;
+  @keyedStatementMap keyStatements [emptyMap];
+  @keyedIdentifierMap keyIdentifier [emptyMap];
+  repeat
+    $identifier$ ?@lstring key;
+    select
+      <statement_list> ?@statementList statements;
+      [!?keyStatements putStatements !key !statements];
+    or
+      $for$;
+      <full_identifier> ?@lstringlist identifier;
+      [!?keyIdentifier putIdentifier !key !identifier];
+    end select;
+  while end repeat;
+  $}$;
+  @backendDeclaration backend := [@backendDeclaration new !backendName !arguments !keyStatements !keyIdentifier];
+  [!?declarations putBackend !backendName !backend];
+#  message "Backend ".backendName." added\n";
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <condition> !@expression expr:
+  $($;
+  <expression> ?expr;
+  $)$;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <declaration_list> !@varDeclarationMap vars:
+  vars := [@varDeclarationMap emptyMap];
+  repeat while
+    <local_var_declaration> !?vars;
+    $;$;
+  end repeat;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <statement_list> !@statementList code:
+  code := [@statementList emptyList];
+  ${$;
+  repeat
+  while
+    @statement statement;
+    <statement> ?statement;
+    code += !statement;
+  end repeat;
+  $}$;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <ordering_list>
+  !@orderingList ordering
+:
+  ordering := [@orderingList emptyList];
+  repeat
+    <expression> ?@expression key; $:$;
+    @bool up;
+    select
+      $<$; up := true;
+    or
+      $>$; up := false;
+    end select;
+    ordering += !key !up;
+  while
+    $,$;
+  end repeat;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <statement> !@statement statement:
+  @lstringlist identifier;
+  <full_identifier> ?identifier;
+  select
+    @lstring funcName;
+    if [identifier length] > 1 then
+      error here: "function name expected": funcName;
+    else
+      [identifier first ?funcName];
+    end if;
+    $($; 
+    @expressionList expList [emptyList];
+    select <expression_list> ?expList; or end select;
+    $)$; # function call
+    statement := [@functionCallStatement new !here !funcName !expList];
+  or
+    <assignment> !identifier ?statement;
+  end select;
+  $;$;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <statement> !@statement statement:
+  $move$;
+  select
+    $each$;
+    <full_identifier> ?@lstringlist sourceItem;
+    $in$;
+    <full_identifier> ?@lstringlist sourceContainer;
+    $to$;
+    select
+      $each$;
+      $identifier$ ?@lstring destItem;
+      $in$;
+      <full_identifier> ?@lstringlist destContainer;
+      @expression condition;
+      select
+        $while$;
+        <expression> ?condition;
+      or
+        condition := [@boolNode new !here ![@lbool new !true !here]];
+      end select;
+      statement := [@moveeacheachStatement new !here !sourceItem !sourceContainer !destItem !destContainer !condition];
+    or   
+      <move_destination> ?@migrationDestination destination;
+      @expression condition;
+      select
+        $while$;
+        <expression> ?condition;
+      or
+        condition := [@boolNode new !here ![@lbool new !true !here]];
+      end select;
+      statement := [@moveeachStatement new !here !sourceItem !sourceContainer !destination !condition];
+    end select;
+  or
+    <full_identifier> ?@lstringlist sourceContainer;
+    $to$;
+    <move_destination> ?@migrationDestination destination;
+    statement := [@moveStatement new !here !sourceContainer !destination];
+  end select;
+  $;$;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <move_destination> !@migrationDestination destination:
+  select
+    $[$;
+    @lstring finalState := emptylstring[];
+    select
+      $identifier$ ?finalState;
+    or end select;
+    $]$;
+    destination := [@stateDestination new !here !finalState];
+  or
+    <full_identifier> ?@lstringlist identifier;
+    @lbool position;
+    select
+      $front$; position := [@lbool new !true !here];
+    or
+      $back$; position := [@lbool new !false !here];
+    or
+      position := [@lbool new !false !here];
+    end select;
+    destination := [@containerDestination new !here !identifier !position];
+  end select;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <statement> !@statement statement:
+  $if$; <condition> ?@expression cond;
+  <statement_list> ?@statementList trueStatements;
+  @statementList falseStatements [emptyList];
+  select
+    $else$;
+    <statement_list> ?falseStatements;
+  or end select;
+  statement := [@ifStatement new !here !cond !trueStatements !falseStatements];
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <statement> !@statement statement:
+  $start$;
+  @bool periodic := false;
+  select $periodic$; periodic := true; or end select;
+  <full_identifier> ?@lstringlist timer;
+  @lstringlist methodName [emptyList];
+  select $with$; <full_identifier> ?methodName; or end select;
+  $for$;
+  <expression> ?@expression delay;
+  $;$;
+  statement := [@startStatement new !here !timer !delay !periodic !methodName];
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <statement> !@statement statement:
+  $for$; $each$;
+  <iteration_list> ?@itemAndContainerList iteration;
+  <statement_list> ?@statementList statements;
+  statement := [@foreachStatement new !here !iteration !statements];
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <iteration_list> !@itemAndContainerList iteration:
+  iteration := [@itemAndContainerList emptyList];
+  repeat
+    $identifier$ ?@lstring item;
+    $in$;
+    <full_identifier> ?@lstringlist container;
+    @expression where;
+    select
+      $where$;
+      <expression> ?where;
+    or
+      where := [@boolNode new !here ![@lbool new !true !here]];
+    end select;
+    iteration += !item !container !where;
+  while
+    $,$;
+  end repeat;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <statement> !@statement statement:
+  $call$;
+  <full_identifier> ?@lstringlist fullMethod;
+  $;$;
+  statement := [@methodStatement new !here !fullMethod];
+end rule;
+
+#rule <type> !@exprType type:
+#  select
+#    $int$; type := [@exprType integerType];
+#  or
+#    $unsigned$; type := [@exprType unsignedType];
+#  end select;
+#end rule;
+
+#rule <container_migration> ?@migrationDestination destination !@statement statement:
+#  $<-$;
+#end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <full_identifier> !@lstringlist identifier:
+  identifier := [@lstringlist emptyList];
+  repeat
+    @lstring ident;
+    $identifier$ ?ident;
+    identifier += !ident;
+  while
+    $.$;
+  end repeat;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <assignment> ?@lstringlist identifier !@statement statement:
+  select
+    $=$; @expression expr;
+    <expression> ?expr; statement := [@assignExpressionStatement new !here !identifier !expr];
+  or
+    $+=$; @expression expr;
+    <expression> ?expr; statement := [@assignAddStatement new !here !identifier !expr];
+  or
+    $-=$; @expression expr;
+    <expression> ?expr; statement := [@assignSubStatement new !here !identifier !expr];
+  or
+    $*=$; @expression expr;
+    <expression> ?expr; statement := [@assignMulStatement new !here !identifier !expr];
+  or
+    $/=$; @expression expr;
+    <expression> ?expr; statement := [@assignDivStatement new !here !identifier !expr];
+  or
+    $%=$; @expression expr;
+    <expression> ?expr; statement := [@assignRemainStatement new !here !identifier !expr];
+  or
+    $&=$; @expression expr;
+    <expression> ?expr; statement := [@assignAndStatement new !here !identifier !expr];
+  or
+    $|=$; @expression expr;
+    <expression> ?expr; statement := [@assignOrStatement new !here !identifier !expr];
+  or
+    $<<=$; @expression expr;
+    <expression> ?expr; statement := [@assignShiftLeftStatement new !here !identifier !expr];
+  or
+    $>>=$; @expression expr;
+    <expression> ?expr; statement := [@assignShiftRightStatement new !here !identifier !expr];
+  or
+    $++$; statement := [@assignIncStatement new !here !identifier];
+  or
+    $--$; statement := [@assignDecStatement new !here !identifier];
+  end select;
+end rule;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <access_right> !@accessRight access:
+  $($;
+  $identifier$ ?@lstring accessLString;
+  @bool constant := false;
+  @bool read := false;
+  @bool write := false;
+  @string accessString := [accessLString string];
+  @uint i := 0;
+  loop [accessString length]:
+  while i < [accessString length] do
+    @char curCar := [accessString characterAtIndex !i];
+    if curCar == 'r' then
+      read := true;
+    elsif curCar == 'w' then
+      write := true;
+    elsif curCar == 'c' then
+      constant := true;
+    else
+      error here: "'".[curCar string]."' is not a valid access right";
+    end if;
+    i := i + 1;
+  end loop;
+  if write & constant then
+    error here: "'w' and 'c' are incompatible access rights";
+  end if;
+  $)$;
+  access := [@accessRight new ![accessLString location] !read !write !constant];
+end rule;
+
+end syntax ;

@@ -1,0 +1,500 @@
+semantics config_generation:
+
+import "sdml_semantics.gSemantics";
+import "template_semantics.gSemantics";
+
+reader @os configuration
+  ->@TfieldMap config
+:
+  config := [@TfieldMap emptyMap];
+  
+  addLStringValue !?config !"OS" !name;
+  # 1 - the data type
+  addMapValue !?config !lstringwith[!"TYPES"] ![typeDeclarations fieldMap];
+  
+  # 2 - the vars
+  @TfieldMap globals := [varDeclarations fieldMap !typeDeclarations];
+  addMapValue !?config !lstringwith[!"VARIABLES"] !globals;
+  
+  # 3 - the scheduler, currently only one schedule is handled
+  @TfieldMap schedulers := [schedulerDeclarations fieldMap !typeDeclarations];
+  addMapValue !?config !lstringwith[!"SCHEDULERS"] !schedulers;
+  
+  # - backends
+  @TfieldMap backends [emptyMap];
+  foreach backendDeclarations do
+    [backend configuration !?backends];
+  end foreach;
+  addMapValue !?config !lstringwith[!"BACKENDS"] !backends;
+end reader;
+
+reader @typeDeclarationMap fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  foreach selfcopy do
+    addStructValue !?result !lkey ![type fieldMap !selfcopy];
+  end foreach;
+end reader;
+
+reader @schedulerDeclarationMap fieldMap ??@typeDeclarationMap types ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  foreach selfcopy do
+    addStructValue !?result !lkey ![scheduler fieldMap !types];
+  end foreach;
+end reader;
+
+reader @schedulerDeclaration fieldMap ??@typeDeclarationMap types ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addLStringValue !?result !"NAME" !name;
+  addLStringValue !?result !"TASK" !task;
+  addLStringValue !?result !"CPU" !cpu;
+  addMapValue !?result !lstringwith[!"VARIABLES"] ![locals fieldMap !types];  
+  addMapValue !?result !lstringwith[!"METHODS"] ![methods fieldMap !types];
+end reader;
+
+reader @methodDeclarationMap fieldMap ??@typeDeclarationMap types ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  foreach selfcopy do
+    addStructValue !?result !lkey ![methodDeclaration fieldMap !types];
+  end foreach;
+end reader;
+
+reader @methodDeclaration fieldMap ??@typeDeclarationMap types ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addLStringValue !?result !"NAME" !name;
+  addMapValue !?result !lstringwith[!"VARIABLES"] ![locals fieldMap !types];
+  addListValue !?result !lstringwith[!"STATEMENTS"] ![statements fieldMapList];
+end reader;
+
+abstract reader @typeDeclaration fieldMap ??@typeDeclarationMap types ->@TfieldMap result;
+  
+method @typeDeclaration typeAndFields
+  ??@typeDeclarationMap types
+  ?!@TfieldMap config
+:
+  addLStringValue !?config !"NAME" !name;
+  @TfieldMap typeFields := [fields fieldMap !types];
+  addMapValue !?config !lstringwith[!"FIELDS"] !typeFields;
+end method;
+
+method @lstringmap configuration
+  ?!@TfieldMap config
+:
+  @TfieldMap states [emptyMap];
+  foreach selfcopy do
+    addStringValue !?states !lkey ![lkey string];
+  end foreach;
+  addMapValue !?config !lstringwith[!"STATES"] !states;
+end method;
+
+override reader @taskDeclaration fieldMap ??@typeDeclarationMap types ->@TfieldMap result
+:
+  result := [@TfieldMap emptyMap];
+  [selfcopy typeAndFields !types !?result];
+  addLStringValue !?result !"FATHER" !father;
+  addLStringValue !?result !"KIND" !lstringwith[!"TASK"];
+  [states configuration !?result];
+end reader;
+
+abstract method @acceptStatement acceptStatement ?!@TfieldMap st;
+
+override method @emptyAcceptStatement acceptStatement ?!@TfieldMap st:
+  addLStringValue !?st !"CPUSTATE" !cpuState;
+end method;
+
+override method @taskAcceptStatement acceptStatement ?!@TfieldMap st:
+  addLStringValue !?st !"CPUSTATE" !cpuState;
+  addLStringValue !?st !"TASKSTATE" !taskState;
+end method;
+
+method @acceptMap configuration
+  ?!@TfieldMap config
+:
+  @TfieldMap states [emptyMap];
+  foreach selfcopy do
+    @TfieldMap st [emptyMap];
+    [accept acceptStatement !?st];
+    addStructValue !?states ![accept cpuState] !st;
+  end foreach;
+  addMapValue !?config !lstringwith[!"STATES"] !states;
+end method;
+
+override reader @cpuDeclaration fieldMap ??@typeDeclarationMap types ->@TfieldMap result
+:
+  result := [@TfieldMap emptyMap];
+  [selfcopy typeAndFields !types !?result];
+  addLStringValue !?result !"TASK" !task;
+  addLStringValue !?result !"KIND" !lstringwith[!"CPU"];
+  [states configuration !?result];
+end reader;
+ 
+reader @varDeclarationMap fieldMap ??@typeDeclarationMap types ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  foreach selfcopy do
+    addStructValue !?result !lkey ![var fieldMap !types];
+  end foreach;
+end reader;
+
+abstract reader @varDeclaration fieldMap ??@typeDeclarationMap types ->@TfieldMap result;
+  
+override reader @builtInVar fieldMap ??@typeDeclarationMap unused types ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addLStringValue !?result !"NAME" !name;
+  addStringValue !?result !lstringwith[!"TYPE"] ![type typeName];
+end reader;
+
+override reader @sdmlContainerVar fieldMap ??@typeDeclarationMap types ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  [states configuration !?result];
+  [ordering configuration !?result];
+  addLStringValue !?result !"NAME" !name;
+  addStringValue !?result !lstringwith[!"TYPE"] ![type typeName];
+  if [type isCollection] then
+    addStringValue !?result !lstringwith[!"QUEUE"] !"YES";
+  else
+    addStringValue !?result !lstringwith[!"QUEUE"] !"NO";
+  end if;
+  # lookup the type in types
+  @typeDeclaration containerType;
+  [types getType ![type lTypeName] ?containerType];
+  addStructValue !?result !lstringwith[!"REFTYPE"] ![containerType fieldMap !types];
+end reader;
+
+method @sdmlOrderingList configuration
+  ?!@TfieldMap config
+:
+  @TfieldMapList order [emptyList];
+  foreach selfcopy do
+    @TfieldMap criterion [emptyMap];
+    addStructValue !?criterion !lstringwith[!"KEYS"] ![key fieldMap];
+    if up then
+      addStringValue !?criterion !lstringwith[!"SORTING"] !"<";
+    else
+      addStringValue !?criterion !lstringwith[!"SORTING"] !">";
+    end if;
+    order += !criterion;
+  end foreach;
+  addListValue !?config !lstringwith[!"ORDERING"] !order;
+end method;
+
+method @backendDeclaration configuration
+  ?!@TfieldMap config
+:
+  @TfieldMap backAttributes [emptyMap];
+  addLStringValue !?backAttributes !"NAME" !name;
+  @TfieldMapList args := [arguments fieldMapList];
+  addListValue !?backAttributes !lstringwith[!"ARGUMENTS"] !args;
+  @TfieldMap keyedStats := [keyedStatements fieldMap];
+  addMapValue !?backAttributes !lstringwith[!"HANDLERS"] !keyedStats;
+  @TfieldMap keyedIdents := [keyedIdentifiers fieldMap];
+  addMapValue !?backAttributes !lstringwith[!"IDENTIFIERS"] ! keyedIdents;
+  addStructValue !?config !name !backAttributes;
+end method;
+
+reader @argumentList fieldMapList
+  ->@TfieldMapList result
+:
+  result := [@TfieldMapList emptyList];
+  foreach selfcopy do
+    @TfieldMap attrs [emptyMap];
+    addLStringValue !?attrs !"NAME" !name;
+    addLStringValue !?attrs !"TYPE" ![type lTypeName];
+    result += !attrs;
+  end foreach;
+end reader;
+
+reader @keyedStatementMap fieldMap
+  ->@TfieldMap result
+:
+  result := [@TfieldMap emptyMap];
+  foreach selfcopy do
+    @TfieldMapList statements := [statements fieldMapList];
+    addListValue !?result !lkey !statements;
+  end foreach;
+end reader;
+
+reader @keyedIdentifierMap fieldMap
+  ->@TfieldMap result
+:
+  result := [@TfieldMap emptyMap];
+  foreach selfcopy do
+    @TfieldMapList statements := [identifier fieldMapList];
+    addListValue !?result !lkey !statements;
+  end foreach;
+end reader;
+
+reader @statementList fieldMapList
+  ->@TfieldMapList result
+:
+  result := [@TfieldMapList emptyList];
+  foreach selfcopy do
+    @TfieldMap stat := [statement fieldMap];
+    result += !stat;
+  end foreach;
+end reader;
+
+reader @statement fieldMap ->@TfieldMap result:
+  error here: "fieldMap should not be called on this statement": result;
+  message [selfcopy description];
+end reader;
+
+override reader @sdmlAssignExpressionStatement fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result ![@lstring new !"NAME" !loc] !"ASSIGN";
+  addListValue !?result !lstringwith[!"IDENTIFIER"] ![identifier fieldMapList];
+  addStructValue !?result !lstringwith[!"EXP"] ![rightValue fieldMap];
+#  @TfieldMapList ident := [identifier fieldMapList];
+end reader;
+
+override reader @sdmlMoveStatement fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result ![@lstring new !"NAME" !loc] !"MOVE";
+  @TfieldMapList src := [source fieldMapList];
+  addListValue !?result !lstringwith[!"SOURCE"] !src;
+  @TfieldMap dest := [destination fieldMap];
+  addStructValue !?result ![@lstring new !"DESTINATION" ![destination loc]] !dest;
+end reader;
+
+reader @lstringlist fieldMapList ->@TfieldMapList result:
+  result := [@TfieldMapList emptyList];
+  foreach selfcopy do
+    @TfieldMap item [emptyMap];
+    addLStringValue !?item !"IDENT" !mValue;
+    result += !item;
+  end foreach;
+end reader;
+
+abstract reader @migrationDestination fieldMap ->@TfieldMap result;
+
+override reader @containerDestination fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result ![@lstring new !"KIND" !loc] !"CONTAINER";
+  addListValue !?result ![@lstring new !"CONTAINER" !loc] ![container fieldMapList];
+end reader;
+
+override reader @stateDestination fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result ![@lstring new !"KIND" !loc] !"STATE";
+  addLStringValue !?result !"STATE" !taskState;
+end reader;
+
+override reader @sdmlMethodStatement fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result ![@lstring new !"NAME" !loc] !"CALL";
+  addListValue !?result !lstringwith[!"METHOD"] ![identifier fieldMapList];
+  addLStringValue !?result !"SCHEDULER" !parentScheduler;
+end reader;
+
+override reader @sdmlForeachStatement fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result ![@lstring new !"NAME" !loc] !"FOREACH";
+  addListValue !?result ![@lstring new !"ITEMS" !loc] ![iteration fieldMapList];
+  addListValue !?result ![@lstring new !"STATEMENTS" !loc] ![statements fieldMapList];
+end reader;
+
+override reader @sdmlMoveeacheachStatement fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result ![@lstring new !"NAME" !loc] !"MOVEEACH";
+  addListValue !?result !lstringwith[!"SRCITEM"] ![srcItem fieldMapList];
+  addLStringValue !?result !"DSTITEM" !dstItem;
+  addListValue !?result !lstringwith[!"SRCCONTAINER"] ![srcContainer fieldMapList];
+  addListValue !?result !lstringwith[!"DSTCONTAINER"] ![dstContainer fieldMapList];
+  addStructValue !?result ![@lstring new !"WHILECONDITION" ![whileCondition loc]] ![whileCondition fieldMap];
+end reader;
+
+override reader @sdmlIfStatement fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result ![@lstring new !"NAME" !loc] !"IF";
+  addStructValue !?result ![@lstring new !"CONDITION" ![condition loc]] ![condition fieldMap];
+  addListValue !?result !lstringwith[!"TRUESTATEMENTS"] ![trueStatements fieldMapList];
+  addListValue !?result !lstringwith[!"FALSESTATEMENTS"] ![falseStatements fieldMapList];
+end reader;
+
+reader @sdmlItemAndContainerList fieldMapList ->@TfieldMapList result:
+  result := [@TfieldMapList emptyList];
+  foreach selfcopy do
+    @TfieldMap cont [emptyMap];
+    addLStringValue !?cont !"ITEM" !item;
+    addListValue !?cont !lstringwith[!"CONTAINER"] ![container fieldMapList];
+    addStructValue !?cont !lstringwith[!"WHERE"] ![where fieldMap];
+    result += !cont;
+  end foreach;
+end reader;
+
+reader @sdmlExpressionList fieldMapList ->@TfieldMapList result:
+  result := [@TfieldMapList emptyList];
+  foreach selfcopy do
+    result += ![expr fieldMap];
+  end foreach;
+end reader;
+
+abstract reader @sdmlExpression fieldMap ->@TfieldMap result;
+
+override reader @sdmlFunctionCallNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"FUNCTIONCALL";
+  addLStringValue !?result !"NAME" !funcName;
+  addListValue !?result !lstringwith[!"ARGS"] ![arguments fieldMapList];
+end reader;
+
+override reader @sdmlIntegerNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"INTEGER";
+  addLUnsignedValue !?result !"VALUE" !integerValue;
+end reader;
+
+override reader @sdmlBoolNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"BOOL";
+  addLBoolValue !?result !"VALUE" !boolValue;
+end reader;
+
+override reader @sdmlIdentifierNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"IDENTIFIER";
+  addListValue !?result !lstringwith[!"NAME"] ![identifierValue fieldMapList];
+end reader;
+
+override reader @sdmlMinNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"MIN";
+  addListValue !?result !lstringwith[!"CONTAINER"] ![container fieldMapList];
+end reader;
+
+override reader @sdmlMaxNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"MAX";
+  addListValue !?result !lstringwith[!"CONTAINER"] ![container fieldMapList];
+end reader;
+
+override reader @sdmlSubExprNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"SUBEXPRESSION";
+  addStructValue !?result !lstringwith[!"EXP"] ![expressionValue fieldMap];
+end reader;
+
+override reader @sdmlNotNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"NOT";
+  addStructValue !?result !lstringwith[!"EXP"] ![expressionValue fieldMap];
+end reader;
+
+override reader @sdmlCompNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"COMP";
+  addStructValue !?result !lstringwith[!"EXP"] ![expressionValue fieldMap];
+end reader;
+
+method @sdmlBinNode setExpr ?!@TfieldMap result:
+  addStructValue !?result !lstringwith[!"LEFT"] ![left fieldMap];
+  addStructValue !?result !lstringwith[!"RIGHT"] ![right fieldMap]; 
+end method;
+
+override reader @sdmlEqualNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"EQUAL";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlDifferNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"DIFFER";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlLowerEqualNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"LOWEROREQUAL";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlGreaterEqualNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"GREATEROREQUAL";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlLowerNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"LOWER";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlGreaterNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"GREATER";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlAndNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"AND";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlOrNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"OR";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlXorNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"XOR";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlShiftLeftNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"SHIFTLEFT";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlShiftRightNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"SHIFTRIGHT";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlAndAndNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"ANDAND";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlOrOrNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"OROR";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlAddNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"ADD";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlSubNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"SUB";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlMulNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"MUL";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlDivNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"DIV";
+  [selfcopy setExpr !?result];
+end reader;
+
+override reader @sdmlRemainNode fieldMap ->@TfieldMap result:
+  result := [@TfieldMap emptyMap];
+  addStringValue !?result !lstringwith[!"KIND"] !"REMAIN";
+  [selfcopy setExpr !?result];
+end reader;
+
+end semantics;

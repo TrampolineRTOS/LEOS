@@ -1,0 +1,319 @@
+semantics dot:
+  import "sdml_semantics.gSemantics";
+
+function fullIdentifier
+  ??@lstringlist identifier
+  ->@string result
+:
+  result := "";
+  foreach identifier do
+    result .= [mValue string];
+  between
+    result .= ".";
+  end foreach;
+end function;
+
+abstract method @sdmlExpression expressionLabel !@string result;
+
+abstract method @sdmlExpression dot ??@string prefix ?!@string description;
+
+method @sdmlExpression dotUni
+  ??@string srcNode
+  ??@string destNode
+  ??@string destNodeLabel
+  ?!@string description
+:
+  description .= "\n".srcNode." -> ".destNode;
+  description .= "\n".destNode." [label=\"".destNodeLabel."\"]";  
+end method;
+
+override method @sdmlEmptyNode expressionLabel !@string result:
+  result := "(".[type string].") empty(".fullIdentifier[!identifier].")";
+end method;
+
+override method @sdmlIntegerNode expressionLabel !@string result:
+  result := "(".[type string].") ".[integerValue string];
+end method;
+
+override method @sdmlBoolNode expressionLabel !@string result:
+  result := "(".[type string].") ".[boolValue cString];
+end method;
+
+override method @sdmlIdentifierNode expressionLabel !@string result:
+  result := "(".[type string].") ".fullIdentifier[!identifierValue];
+end method;
+
+override method @sdmlSubExprNode expressionLabel !@string result:
+  result := "(".[type string].") (...)";
+end method;
+
+override method @sdmlNotNode expressionLabel !@string result:
+  result := "(".[type string].") ~";
+end method;
+
+override method @sdmlCompNode expressionLabel !@string result:
+  result := "(".[type string].") !";
+end method;
+
+override method @sdmlEqualNode expressionLabel !@string result:
+  result := "(".[type string].") ==";
+end method;
+
+override method @sdmlDifferNode expressionLabel !@string result:
+  result := "(".[type string].") !=";
+end method;
+
+override method @sdmlLowerEqualNode expressionLabel !@string result:
+  result := "(".[type string].") <=";
+end method;
+
+override method @sdmlGreaterEqualNode expressionLabel !@string result:
+  result := "(".[type string].") >=";
+end method;
+
+override method @sdmlLowerNode expressionLabel !@string result:
+  result := "(".[type string].") <";
+end method;
+
+override method @sdmlGreaterNode expressionLabel !@string result:
+  result := "(".[type string].") >";
+end method;
+
+override method @sdmlAndNode expressionLabel !@string result:
+  result := "(".[type string].") &";
+end method;
+
+override method @sdmlOrNode expressionLabel !@string result:
+  result := "(".[type string].") |";
+end method;
+
+override method @sdmlXorNode expressionLabel !@string result:
+  result := "(".[type string].") ^";
+end method;
+
+override method @sdmlShiftLeftNode expressionLabel !@string result:
+  result := "(".[type string].") <<";
+end method;
+
+override method @sdmlShiftRightNode expressionLabel !@string result:
+  result := "(".[type string].") >>";
+end method;
+
+override method @sdmlAndAndNode expressionLabel !@string result:
+  result := "(".[type string].") &&";
+end method;
+
+override method @sdmlOrOrNode expressionLabel !@string result:
+  result := "(".[type string].") ||";
+end method;
+
+override method @sdmlAddNode expressionLabel !@string result:
+  result := "(".[type string].") +";
+end method;
+
+override method @sdmlSubNode expressionLabel !@string result:
+  result := "(".[type string].") -";
+end method;
+
+override method @sdmlMulNode expressionLabel !@string result:
+  result := "(".[type string].") *";
+end method;
+
+override method @sdmlDivNode expressionLabel !@string result:
+  result := "(".[type string].") /";
+end method;
+
+override method @sdmlRemainNode expressionLabel !@string result:
+  result := "(".[type string].") %";
+end method;
+
+
+override method @sdmlEmptyNode dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeLabel;
+  [selfcopy expressionLabel ?nodeLabel];
+  [selfcopy dotUni !prefix !prefix."_0" !nodeLabel !?description]; 
+end method;
+
+override method @sdmlIntegerNode dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeLabel;
+  [selfcopy expressionLabel ?nodeLabel];
+  [selfcopy dotUni !prefix !prefix."_0" !nodeLabel !?description]; 
+end method;
+
+override method @sdmlBoolNode dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeLabel;
+  [selfcopy expressionLabel ?nodeLabel];
+  [selfcopy dotUni !prefix !prefix."_0" !nodeLabel !?description]; 
+end method;
+
+override method @sdmlIdentifierNode dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeLabel;
+  [selfcopy expressionLabel ?nodeLabel];
+  [selfcopy dotUni !prefix !prefix."_0" !nodeLabel !?description]; 
+end method;
+
+override method @sdmlUniNode dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeLabel;
+  [selfcopy expressionLabel ?nodeLabel];
+  @string nodeName := prefix."_0";
+  [selfcopy dotUni !prefix !nodeName !nodeLabel !?description]; 
+  [expressionValue dot !nodeName !?description];
+end method;
+
+override method @sdmlBinNode dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeLabel;
+  [selfcopy expressionLabel ?nodeLabel];
+  @string nodeName := prefix."_0";
+  [selfcopy dotUni !prefix !nodeName !nodeLabel !?description]; 
+  [left dot !nodeName !?description];
+  [right dot !nodeName !?description];
+end method;
+
+#-----------------------------------------------------------------------------
+# sdml statements in dot
+#-----------------------------------------------------------------------------
+abstract method @sdmlStatement dot ??@string prefix ?!@string description;
+abstract method @sdmlAssignStatement assignLabel !@string assignLabel;
+
+method @sdmlAssignStatement dotIdentifier
+  ??@string prefix
+  ?!@string description
+:
+  description .= "\n".prefix." -> ".prefix."_left";
+  description .= "\n".prefix."_left"." [label=\"".fullIdentifier[!identifier]."\"]";  
+end method;
+
+override method @sdmlAssignStatement dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeName := prefix."_statement";
+  [selfcopy dotIdentifier !nodeName !?description];
+  @string assignLabel;
+  [selfcopy assignLabel ?assignLabel];
+  description .= "\n".nodeName." [label=\"".assignLabel."\"]"; 
+end method;
+
+override method @sdmlAssignExpressionStatement dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeName := prefix."_statement";
+  [selfcopy dotIdentifier !nodeName !?description];
+  [rightValue dot !nodeName !?description];
+  @string assignLabel;
+  [selfcopy assignLabel ?assignLabel];
+  description .= "\n".nodeName." [label=\"".assignLabel."\"]"; 
+end method;
+
+override method @sdmlAssignExpressionStatement assignLabel !@string assignLabel:
+  assignLabel := "=";
+end method;
+
+override method @sdmlAssignAddStatement assignLabel !@string assignLabel:
+  assignLabel := "+=";
+end method;
+
+override method @sdmlAssignSubStatement assignLabel !@string assignLabel:
+  assignLabel := "-=";
+end method;
+
+override method @sdmlAssignMulStatement assignLabel !@string assignLabel:
+  assignLabel := "*=";
+end method;
+
+override method @sdmlAssignDivStatement assignLabel !@string assignLabel:
+  assignLabel := "/=";
+end method;
+
+override method @sdmlAssignRemainStatement assignLabel !@string assignLabel:
+  assignLabel := "%=";
+end method;
+
+override method @sdmlAssignAndStatement assignLabel !@string assignLabel:
+  assignLabel := "&=";
+end method;
+
+override method @sdmlAssignOrStatement assignLabel !@string assignLabel:
+  assignLabel := "|=";
+end method;
+
+override method @sdmlAssignShiftLeftStatement assignLabel !@string assignLabel:
+  assignLabel := "<<=";
+end method;
+
+override method @sdmlAssignShiftRightStatement assignLabel !@string assignLabel:
+  assignLabel := ">>=";
+end method;
+
+override method @sdmlAssignIncStatement assignLabel !@string assignLabel:
+  assignLabel := "++";
+end method;
+
+override method @sdmlAssignDecStatement assignLabel !@string assignLabel:
+  assignLabel := "--";
+end method;
+
+override method @sdmlMethodStatement dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeName := prefix."_statement";
+  description .= "\n".nodeName." [label=\"".fullIdentifier[!identifier]."\"]"; 
+end method;
+
+override method @sdmlIfStatement dot
+  ??@string prefix
+  ?!@string description
+:
+  @string nodeName := prefix."_statement";
+  description .= "\n".nodeName." [label=\"If\"]";
+  [condition dot !nodeName !?description];
+  statementsDot !statements !nodeName !?description;
+end method;
+
+routine statementsDot
+  ??@sdmlStatementList statements
+  ??@string prefix
+  ?!@string description
+:
+  foreach statements index n do
+    [statement dot !prefix."_".n !?description];
+  end foreach;
+end routine;
+
+method @scheduler dot
+  ?!@string description
+:
+  @string rootName := "scheduler_".schedulerName;
+  @string eventsName := rootName."_events";
+  @string handlersName := rootName."_handlers";
+  @string rulesName := rootName."_rules";
+  description .= "\n".rootName." -> ".eventsName;
+  description .= "\n".rootName." -> ".handlersName;
+  description .= "\n".rootName." -> ".rulesName;
+  description .= "\n".rootName." [label=\"Scheduler ".schedulerName."\"]";
+  description .= "\n".eventsName." [label=\"Events\"]";
+  description .= "\n".handlersName." [label=\"Handlers\"]";
+  description .= "\n".rulesName." [label=\"Rules\"]";
+end method;
+  
+end semantics;

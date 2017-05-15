@@ -1,0 +1,35 @@
+project (0:0:1) -> "leos"
+{
+#--- Targets
+  %makefile-macosx
+  %makefile-unix
+  %makefile-x86linux32-on-macosx
+  %makefile-x86linux64-on-macosx
+  %makefile-win32-on-macosx
+  %codeblocks-windows
+  
+  #specific for Mac Cocoa Version:
+  %LatestMacOS
+  %applicationBundleBase : "fr.ls2n.str"
+
+#--- Source files (relative path from 'galgas_sources' directory)
+  "galgas-sources/leos_options.galgas"
+  "galgas-sources/leos_lexique.galgas"
+  "galgas-sources/expression_syntax.galgas"
+  "galgas-sources/leos_syntax.galgas"
+  "galgas-sources/leos_semantics.galgas"
+  "galgas-sources/backend.galgas"
+  "galgas-sources/types.galgas"
+  "galgas-sources/leos_verification.galgas"
+  "galgas-sources/expression_semantics.galgas"
+  "galgas-sources/leos_types.galgas"
+  "galgas-sources/utilities.galgas"
+  "galgas-sources/config_generation.galgas"
+  "galgas-sources/leos_grammar.galgas"
+  
+  "galgas-sources/leos_cocoa.galgas"
+  "galgas-sources/leos_program.galgas"
+
+#--- Extern source file (relative path from 'hand_coded_sources' directory)
+#  extern "leos_computations.cpp";
+}

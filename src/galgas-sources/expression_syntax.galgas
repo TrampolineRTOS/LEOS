@@ -1,0 +1,223 @@
+syntax expression_syntax (leos_lexique)
+{
+rule <full_identifier> !@lstringlist identifier
+
+rule <expression>
+  !@expression expr
+{
+  <logical_or_expr> ?expr
+  repeat
+  while
+    @expression right
+    $||$ @location opLoc = .here <logical_or_expr> ?right
+    expr = @orOrNode.new { !opLoc !expr !right }
+  end
+}
+
+rule <logical_or_expr>
+  !@expression expr
+{
+  <logical_and_expr> ?expr
+  repeat
+  while
+    @expression right
+    $&&$ @location opLoc = .here <logical_and_expr> ?right
+    expr = @andAndNode.new { !opLoc !expr !right }
+  end
+}
+
+rule <logical_and_expr>
+  !@expression expr
+{
+  <bitwise_or_expr> ?expr
+  repeat
+  while
+    @expression right
+    $|$ @location opLoc = .here <bitwise_or_expr> ?right
+    expr = @orNode.new { !opLoc !expr !right }
+  end
+}
+
+rule <bitwise_or_expr>
+  !@expression expr
+{
+  <bitwise_and_expr> ?expr
+  repeat
+  while
+    @expression right
+    $&$ @location opLoc = .here <bitwise_and_expr> ?right
+    expr = @andNode.new { !opLoc !expr !right }
+  end
+}
+
+rule <bitwise_and_expr>
+  !@expression expr
+{
+  <eq_diff_comparison> ?expr
+  repeat
+  while
+    @expression right
+    $==$ @location opLoc = .here <eq_diff_comparison> ?right
+    expr = @equalNode.new { !opLoc !expr !right }
+  while
+    @expression right
+    $!=$ @location opLoc = .here <eq_diff_comparison> ?right
+    expr = @differNode.new { !opLoc !expr !right }
+  end
+}
+
+rule <eq_diff_comparison>
+  !@expression expr
+{
+  <lower_greater_comparison> ?expr
+  repeat
+  while
+    @expression right
+    $<$ @location opLoc = .here <lower_greater_comparison> ?right
+    expr = @lowerNode.new { !opLoc !expr !right }
+  while
+    @expression right
+    $>$ @location opLoc = .here <lower_greater_comparison> ?right
+    expr = @greaterNode.new { !opLoc !expr !right }
+  while
+    @expression right
+    $<=$ @location opLoc = .here <lower_greater_comparison> ?right
+    expr = @lowerEqualNode.new { !opLoc !expr !right }
+  while
+    @expression right
+    $>=$ @location opLoc = .here <lower_greater_comparison> ?right
+    expr = @greaterEqualNode.new { !opLoc !expr !right }
+  end
+}
+
+rule <lower_greater_comparison>
+  !@expression expr
+{
+  <shift_expr> ?expr
+  repeat
+  while
+    @expression right
+    $<<$ @location opLoc = .here <shift_expr> ?right
+    expr = @shiftLeftNode.new { !opLoc !expr !right }
+  while
+    @expression right
+    $>>$ @location opLoc = .here <shift_expr> ?right
+    expr = @shiftRightNode.new { !opLoc !expr !right }
+  end 
+}
+
+rule <shift_expr>
+  !@expression expr
+{
+  <add_expr> ?expr
+  repeat
+  while
+    @expression right
+    $+$ @location opLoc = .here <add_expr> ?right
+    expr = @addNode.new { !opLoc !expr !right }
+  while
+    @expression right
+    $-$ @location opLoc = .here <add_expr> ?right
+    expr = @subNode.new { !opLoc !expr !right }
+  end 
+}
+
+rule <add_expr>
+  !@expression expr
+{
+  <mult_expr> ?expr
+  repeat
+  while
+    @expression right
+    $*$ @location opLoc = .here <mult_expr> ?right
+    expr = @mulNode.new { !opLoc !expr !right }
+  while
+    @expression right
+    $/$ @location opLoc = .here <mult_expr> ?right
+    expr = @divNode.new { !opLoc !expr !right }
+  while
+    @expression right
+    $%$ @location opLoc = .here <mult_expr> ?right
+    expr = @remainNode.new { !opLoc !expr !right }
+  end
+}
+
+rule <mult_expr>
+  !@expression expr
+{
+  select
+    <integer> ?expr
+  or
+    <full_identifier> ?@lstringlist identifier
+    select
+      @lstring funcName
+      if [identifier length] > 1 then
+        error .here : "function name expected" : funcName
+      else
+        [identifier first ?funcName]
+      end
+      $($
+      @expressionList expList = .emptyList
+      select <expression_list> ?expList or end
+      $)$
+      expr = @functionCallNode.new { !here !funcName !expList }
+    or
+      expr = @identifierNode.new { !here !identifier }
+    end  
+  or
+    @expression subExpr
+    $($ <expression> ?subExpr $)$
+    expr = @subExprNode.new { !here !subExpr }
+  or
+    @expression notExpr
+    $!$ @location opLoc = .here <mult_expr> ?notExpr
+    expr = @notNode.new { !opLoc !notExpr }
+  or
+    @expression compExpr
+    $~$ @location opLoc = .here <mult_expr> ?compExpr
+    expr = @compNode.new { !opLoc !compExpr }
+#  or
+#    @lstringlist identifier
+#    $empty$ $($ <full_identifier> ?identifier $)$
+#    expr = [@emptyNode.new !here !identifier]
+  or
+    $YES$
+    expr = @boolNode.new { !here !@lbool.new { !true !here } }
+  or
+    $NO$
+    expr = @boolNode.new { !here !@lbool.new { !false !here } }
+  or
+    $min$ <full_identifier> ?@lstringlist field $in$ <full_identifier> ?@lstringlist container
+    expr = @minNode.new { !here !field !container }
+  or
+    $max$ <full_identifier> ?@lstringlist field $in$ <full_identifier> ?@lstringlist container
+    expr = @maxNode.new { !here !field !container }
+  end 
+}
+
+rule <integer>
+  !@expression expr
+{
+  select
+    @luint64 value
+    $integer$ ?value
+    expr = @integerNode.new { ![value location] !value }
+  or
+    $max_unsigned$
+    expr = @integerNode.new { !here !@luint64.new { !@uint64.max !here } }
+  end 
+}
+
+rule <expression_list>
+  !@expressionList expList
+{
+  expList = .emptyList
+  repeat
+    <expression> ?@expression exp
+    expList += !exp
+  while
+    $,$
+  end
+}
+
+}

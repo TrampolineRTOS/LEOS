@@ -1,0 +1,35 @@
+#=============================================================================
+# SDML
+# backend data types and semantics verifications
+#=============================================================================
+
+semantics backend:
+
+import "types.gSemantics" ;
+
+class @backendDeclaration {
+  @lstring name;
+  @argumentList arguments;
+  @keyedStatementMap keyedStatements;
+  @keyedIdentifierMap keyedIdentifiers;
+}
+
+map @backendDeclarationMap {
+  @backendDeclaration backend;
+  insert putBackend error message "Backend '%K' is already declared in %L";
+  search getBackend error message "Backend '%K' is not declared";
+}
+
+map @keyedStatementMap {
+  @statementList statements;
+  insert putStatements error message "Statements '%K' is already declared in %L";
+  search getStatements error message "Statements '%K' is not declared";
+}
+
+map @keyedIdentifierMap {
+  @lstringlist identifier;
+  insert putIdentifier error message "Identifier '%K' is already declared in %L";
+  search getIdentifier error message "Identifier '%K' is not declared";
+}
+
+end semantics;

@@ -1,0 +1,139 @@
+lexique leos_lexique {
+
+style keywordsStyle -> "Keywords:"
+style identifierStyle -> "Identifiers:"
+style delimitersStyle -> "Delimiters:"
+style integerStyle -> "Integer Literals:"
+style commentStyle -> "Comments:"
+
+#
+# Eat whitespaces
+#
+rule '\u0001'->' ' { }
+
+#----------------------- comments -------------------------------
+# They must be defined before delimitors!! 
+# '/' is a delimitor.
+$comment$ style commentStyle error message "a comment"
+rule "//" {
+  repeat #accept all except 0xA (LF) and 0xD (CR)
+  while '\u0001'->'\u0009' | '\u000B'| '\u000C'| '\u000E' -> '\uFFFD' : 
+  end
+  drop $comment$
+}
+
+message unterminated_comment_error : "unterminated comment"
+
+rule "/*" {
+   repeat
+   while ~ "*/" error unterminated_comment_error :
+   end
+   drop $comment$
+}
+
+list keywordsList style keywordsStyle error message "'%K' keyword"
+{
+  "move", "each", "to", "scheduler", "os", "task", "cpu", "init", "with",
+  "state", "error", "timer", "sorted", "when", "while", "on", "in", "empty",
+  "start", "periodic", "call", "max_unsigned", "max_int", "min_int", "by",
+  "transitions", "extends", "for", "where", "function", "backend",
+  "service", "runtime",
+  "container", "min", "max", "front", "back", "api", "int", "unsigned",
+  "bool", "method", "queue", "if", "else", "YES", "NO"
+}
+  
+list delimiters style delimitersStyle error message "'%K' delimiter"
+{
+  "{", "}", "[", "]", "(", ")", ";", ",", ".", "->", ":"
+}
+
+rule list delimiters
+
+list comparisonOps style delimitersStyle error message "'%K' comparison operator"
+{
+ "==", "!=", "<=", ">=", "<", ">"
+}
+
+rule list comparisonOps
+
+list logicalBinOps style delimitersStyle error message "'%K' logical binary operator"
+{
+  "&&", "||"
+}
+
+rule list logicalBinOps
+
+list bitwiseBinOps style delimitersStyle error message "'%K' bitwise binary operator"
+{
+ "&", "|", "^", "<<", ">>"
+}
+
+rule list bitwiseBinOps
+
+list bitwiseUnOps style delimitersStyle error message "'%K' bitwise unary operator"
+{
+ "~"
+}
+
+rule list bitwiseUnOps
+
+
+list logicalUnOps style delimitersStyle error message "'%K' logical binary operator"
+{
+  "!"
+}
+
+rule list logicalUnOps
+
+list assignmentUnOps style delimitersStyle error message  "'%K' assignment unary operator"
+{
+  "++", "--"
+}
+
+rule list assignmentUnOps
+
+list assignmentBinOps style delimitersStyle error message "'%K' assignment binary operator"
+{
+  "=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "<<=", ">>="
+}
+
+rule list assignmentBinOps
+
+list arithOps style delimitersStyle error message "'%K' arithmetic operator"
+{
+  "+", "-", "*", "/", "%"
+}
+
+rule list arithOps
+
+# identifier
+@string identifierString
+$identifier$ !identifierString style identifierStyle error message "an identifier"
+
+rule 'a' -> 'z' | 'A' -> 'Z'
+{
+  repeat
+    enterCharacterIntoString (!?identifierString !*)
+  while 'a'->'z' | 'A'->'Z' | '_' | '0'->'9':
+  end
+  send
+    search identifierString in keywordsList default
+    $identifier$
+}
+
+# integer
+message decimalNumberTooLarge : "decimal number too large"
+message internalError : "internal error"
+
+@uint64 integerValue
+$integer$ !integerValue style integerStyle error message "an integer"
+rule '0' -> '9'
+{
+  repeat
+    enterDigitIntoUInt64 (!* !?integerValue error decimalNumberTooLarge, internalError)
+  while '0' -> '9' :
+  end
+  send $integer$
+}
+
+}

@@ -1,0 +1,37 @@
+semantics expression_semantics :
+
+abstract class @expression { @location loc; }
+abstract class @uniNode extends @expression { @expression expressionValue; }
+abstract class @binNode extends @expression { @expression left; @expression right; }
+class @functionCallNode extends @expression { @lstring funcName; @expressionList arguments; }
+class @integerNode      extends @expression { @luint64 integerValue; }
+class @boolNode         extends @expression { @lbool boolValue; }
+class @identifierNode   extends @expression { @lstringlist identifierValue; }
+class @minNode, @maxNode extends @expression { @lstringlist field; @lstringlist container; }
+class @subExprNode      extends @uniNode {}
+class @notNode          extends @uniNode {}
+class @compNode         extends @uniNode {}
+class @equalNode        extends @binNode {}
+class @differNode       extends @binNode {}
+class @lowerEqualNode   extends @binNode {}
+class @greaterEqualNode extends @binNode {}
+class @lowerNode        extends @binNode {}
+class @greaterNode      extends @binNode {}
+class @andNode          extends @binNode {}
+class @orNode           extends @binNode {}
+class @xorNode          extends @binNode {}
+class @shiftLeftNode    extends @binNode {}
+class @shiftRightNode   extends @binNode {}
+class @andAndNode       extends @binNode {}
+class @orOrNode         extends @binNode {}
+class @addNode          extends @binNode {}
+class @subNode          extends @binNode {}
+class @mulNode          extends @binNode {}
+class @divNode          extends @binNode {}
+class @remainNode       extends @binNode {}
+
+list @expressionList {
+  @expression exp;
+}
+
+end semantics;

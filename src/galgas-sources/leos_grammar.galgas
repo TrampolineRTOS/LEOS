@@ -1,0 +1,7 @@
+grammar sdml_grammar "LL1":
+with "sdml_syntax.gSyntax" ;
+with "expression_syntax.gSyntax";
+
+root <start_symbol> !@os os;
+
+end grammar ;

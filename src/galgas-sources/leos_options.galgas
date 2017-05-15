@@ -1,0 +1,7 @@
+option leos_options {
+
+@string backend      : 'b', "backend" -> "backend used for code generation"
+@bool   dryrun       : 'd', "dry-run" -> "parse and perform semantics checking but does not generate any code"
+@string template_dir : '\0', "templates" -> "Specifies template directory (used by sdml for code generation)"
+
+}

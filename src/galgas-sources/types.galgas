@@ -1,0 +1,16 @@
+semantics types :
+
+import "sdml_types.gSemantics";
+
+abstract class @statement { @location loc; }
+
+list @statementList {
+  @statement statement;
+}
+
+list @argumentList {
+  @lstring name;
+  @sdmlType type;
+}
+
+end semantics;

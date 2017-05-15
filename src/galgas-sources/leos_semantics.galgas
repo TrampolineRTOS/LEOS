@@ -1,0 +1,1530 @@
+semantics sdml_semantics :
+  import "expression_semantics.gSemantics";
+  import "sdml_types.gSemantics";
+  import "sdml_options.gOption" ;
+  import "backend.gSemantics";
+
+#
+# root object
+#
+class @os {
+  @lstring name;
+  @typeDeclarationMap      typeDeclarations;
+  @varDeclarationMap       varDeclarations;
+  @funcDeclarationMap      funcDeclarations;
+  @schedulerDeclarationMap schedulerDeclarations;
+  @transDeclarationMap     transDeclarations;
+  @backendDeclarationMap   backendDeclarations;
+}
+
+map @typeDeclarationMap {
+  @typeDeclaration type;
+  insert putType error message "Type '%K' is already declared in %L";
+  search getType error message "Type '%K' is not declared";
+  insert putTaskType error message "Task type '%K' is already declared in %L";
+  search getTaskType error message "Task type '%K' is not declared";
+  insert putCpuType error message "CPU type '%K' is already declared in %L";
+  search getCpuType error message "CPU type '%K' is not declared";
+}
+
+map @varDeclarationMap {
+  @varDeclaration var;
+  insert putData error message "Data '%K' is already declared in %L";
+  search getData error message "Data '%K' is not declared";
+  insert putField error message "Field '%K' is already declared in %L";
+  search getField error message "Field '%K' is not declared";
+  search getTimer error message "Timer '%K' is not declared";
+}
+
+map @schedulerDeclarationMap {
+  @schedulerDeclaration scheduler;
+  insert putScheduler error message "Scheduler '%K' is already declared in %L";
+  search getScheduler error message "Scheduler '%K' is not declared";
+}
+
+map @transDeclarationMap {
+  @transDeclaration transition;
+  insert putTrans error message "Transitions '%K' are already declared in %L";
+  search getTrans error message "Transitions '%K' are not declared";
+}
+
+reader @typeDeclarationMap hasLKey ??@lstring lkey -> @bool result:
+  result := [selfcopy hasKey ![lkey string]];
+end reader;
+
+abstract class @typeDeclaration {
+  @lstring name;
+  @varDeclarationMap fields;
+  @transitionList allowed;
+}
+
+class @taskDeclaration extends @typeDeclaration {
+  @lstring father;
+  @lstringmap states;
+}
+
+#---------------------------------------------------------------------------*
+# get all the states of a task, including the states defined by the
+# ancestors
+#
+reader @taskDeclaration allStates
+  ??@os os
+  ->@lstringmap result
+:
+  if [father string] != "" then
+    @typeDeclaration refobj;
+    [[os typeDeclarations] getTaskType !father ?refobj];
+    cast refobj:
+    when == @taskDeclaration fatherTask do
+      result := [@lstringmap mapWithMapToOverride ![fatherTask allStates !os]];
+      foreach states do
+        [!?result putState !lkey];
+      end foreach;
+    else
+      error father: " wrong type" : result;
+    end cast;
+  else
+    result := states;
+  end if;
+end reader;
+
+class @cpuDeclaration extends @typeDeclaration {
+  @lstring task;
+  @acceptMap states;
+}
+
+class @schedulerDeclaration {
+  @lstring name;
+  @lstring task;
+  @lstring cpu;
+  @varDeclarationMap locals;
+  @methodDeclarationMap methods;
+}
+
+class @methodDeclaration {
+  @lstring name;
+  @varDeclarationMap locals;
+  @statementList statements;
+}
+
+map @methodDeclarationMap {
+  @methodDeclaration methodDeclaration;
+  insert putMethod error message "Method '%K' is already declared in %L";
+  search getMethod error message "Method '%K' is not declared";
+}
+
+class @transDeclaration {
+  @lstring name;
+  @lstring taskType;
+  @lstring taskName;
+  @transitionList transitions;
+}
+
+class @funcDeclaration {
+  @lstring name;
+  @sdmlType type;
+  @argumentList arguments;
+  @varDeclarationMap locals;
+  @statementList statements;
+}
+
+map @funcDeclarationMap {
+  @funcDeclaration func;
+  insert putFunction error message "Function '%K' is already declared in %L";
+  search getFunction error message "Function '%K' is not declared";
+}
+
+class @accessRight {
+  @location location;
+  @bool read;
+  @bool write;
+  @bool constant;
+}
+
+function rwAccess ->@accessRight access:
+  access := [@accessRight new !here !true !true !false];
+end function;
+
+function roAccess ->@accessRight access:
+  access := [@accessRight new !here !true !false !false];
+end function;
+
+abstract class @varDeclaration {
+  @lstring name;
+  @sdmlType type;
+}
+
+class @builtInVar extends @varDeclaration {
+  @accessRight access;
+}
+
+class @refVar extends @builtInVar {}
+
+class @containerVar extends @refVar {
+  @lstringmap states;
+  @orderingList ordering;
+}
+
+class @sdmlContainerVar extends @refVar {
+  @lstringmap states;
+  @sdmlOrderingList ordering;
+}
+
+abstract class @acceptStatement {
+  @lstring cpuState;
+}
+
+class @emptyAcceptStatement extends @acceptStatement {
+}
+
+class @taskAcceptStatement extends @acceptStatement {
+  @lstring taskState;
+}
+
+map @acceptMap {
+  @acceptStatement accept;
+  insert putState error message "state '%K' is already declared in %L";
+  search getState error message "state '%K' is not declared";
+}
+
+map @lstringmap {
+  insert putState error message "state '%K' is already declared in %L";
+  search getState error message "state '%K' is not declared";
+  insert putCpuOrTask error message "object '%K' is already declared in %L";
+  search getCpuOrTask error message "object '%K' is not declared";
+}
+
+reader @lstringmap hasLKey ??@lstring lkey ->@bool result:
+  result := [selfcopy hasKey ![lkey string]];
+end reader;
+
+reader @acceptMap hasLKey ??@lstring lkey ->@bool result:
+  result := [selfcopy hasKey ![lkey string]];
+end reader;
+
+abstract class @migrationDestination { @location loc; }
+abstract method @migrationDestination checkSource
+  ??@os os
+  ??@lstringlist source;
+
+class @containerDestination extends @migrationDestination { @lstringlist container; @lbool position; }
+override method @containerDestination checkSource
+  ??@os os
+  ??@lstringlist source
+:
+  @sdmlType sourceType := [[os varDeclarations] identifierType !source !os];
+   # destination must be the same type or inherit from the type
+  @lstringlist destinationType := [[os varDeclarations] identifierTypeList !container !os];
+  if not [destinationType mayContain ![sourceType lTypeName]] then
+    error loc: "destination type does not match source type";
+  end if;
+end method;
+
+class @stateDestination extends @migrationDestination {
+  @lstring taskState;
+}
+override method @stateDestination checkSource
+  ??@os os
+  ??@lstringlist source
+:
+  if [taskState string] != "" then
+    @sdmlType sourceType := [[os varDeclarations] identifierType !source !os];
+    @typeDeclaration taskType;
+    [[os typeDeclarations] getTaskType ![sourceType lTypeName] ?taskType]; 
+    cast taskType:
+    when == @taskDeclaration td do
+      @lstringmap states := [td allStates !os];
+      if not [states hasLKey !taskState] then
+        error taskState: "state of the source expected";
+      end if;
+    else
+      @lstring last;
+      [source last ?last];
+      error last: "task type expected";
+    end cast;
+  end if;
+end method;
+
+#enum @exprType {
+#  unsignedType, integerType, boolType, timerType, customType
+#}{}
+
+#class @fullType {
+#  @exprType type;
+#  @lstring customType;
+#  @bool collection;
+#}
+
+#reader @exprType string -> @string result:
+#  switch selfcopy
+#  when unsignedType: result := "unsigned";
+#  when integerType:  result := "int";
+#  when boolType:     result := "bool";
+#  when timerType:    result := "timer";
+#  when customType:   result := "custom";
+#  end switch;
+#end reader;
+
+list @orderingList {
+  @expression key;
+  @bool       up;
+}
+
+list @sdmlOrderingList {
+  @sdmlExpression key;
+  @bool           up;
+}
+
+abstract class @sdmlExpression { @location loc; @sdmlType type; }
+abstract class @sdmlUniNode extends @sdmlExpression { @sdmlExpression expressionValue; }
+abstract class @sdmlBinNode extends @sdmlExpression { @sdmlExpression left; @sdmlExpression right; }
+class @sdmlFunctionCallNode extends @sdmlExpression { @lstring funcName; @sdmlExpressionList arguments; }
+class @sdmlIntegerNode      extends @sdmlExpression { @luint64 integerValue; }
+class @sdmlBoolNode         extends @sdmlExpression { @lbool boolValue; }
+class @sdmlIdentifierNode   extends @sdmlExpression { @lstringlist identifierValue; }
+class @sdmlMinNode          extends @sdmlExpression { @lstringlist field; @lstringlist container; }
+class @sdmlMaxNode          extends @sdmlExpression { @lstringlist field; @lstringlist container; }
+class @sdmlSubExprNode      extends @sdmlUniNode {}
+class @sdmlNotNode          extends @sdmlUniNode {}
+class @sdmlCompNode         extends @sdmlUniNode {}
+class @sdmlEqualNode        extends @sdmlBinNode {}
+class @sdmlDifferNode       extends @sdmlBinNode {}
+class @sdmlLowerEqualNode   extends @sdmlBinNode {}
+class @sdmlGreaterEqualNode extends @sdmlBinNode {}
+class @sdmlLowerNode        extends @sdmlBinNode {}
+class @sdmlGreaterNode      extends @sdmlBinNode {}
+class @sdmlAndNode          extends @sdmlBinNode {}
+class @sdmlOrNode           extends @sdmlBinNode {}
+class @sdmlXorNode          extends @sdmlBinNode {}
+class @sdmlShiftLeftNode    extends @sdmlBinNode {}
+class @sdmlShiftRightNode   extends @sdmlBinNode {}
+class @sdmlAndAndNode       extends @sdmlBinNode {}
+class @sdmlOrOrNode         extends @sdmlBinNode {}
+class @sdmlAddNode          extends @sdmlBinNode {}
+class @sdmlSubNode          extends @sdmlBinNode {}
+class @sdmlMulNode          extends @sdmlBinNode {}
+class @sdmlDivNode          extends @sdmlBinNode {}
+class @sdmlRemainNode       extends @sdmlBinNode {}
+
+list @sdmlExpressionList {
+  @sdmlExpression expr;
+}
+
+list @sdmlTypeList {
+  @sdmlType type;
+}
+
+#
+# Readers to build a sdmlExpression from an expression
+# The reader compute the type
+#
+abstract reader @expression sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr;
+
+method @binNode binSameType
+  ??@os os
+  ??@string operatorString
+  !@sdmlExpression leftExpr
+  !@sdmlExpression rightExpr
+:
+  leftExpr := [left sdmlExpression !os];
+  rightExpr := [right sdmlExpression !os];
+  if not [[leftExpr type] isEqualTo ![rightExpr type]] then
+    error loc: operatorString . " operator expects the same left and right expression types";
+  end if;
+end method;
+
+method @binNode binSameTypeAndNumber
+  ??@os os
+  ??@string operatorString
+  !@sdmlExpression leftExpr
+  !@sdmlExpression rightExpr
+:
+  leftExpr := [left sdmlExpression !os];
+  rightExpr := [right sdmlExpression !os];
+  if [[leftExpr type] dynamicType] == `@sdmlUnsigned | [[leftExpr type] dynamicType] == `@sdmlInteger then
+    if not [[leftExpr type] isEqualTo ![rightExpr type]] then
+      error loc: operatorString . " operator expects the same left and right expression types";
+    end if;
+  else
+    error loc: operatorString . " operator expects integers or unsigned expression types";
+  end if;
+end method;
+
+method @binNode binSameTypeAndNumberAndUnsigned
+  ??@os os
+  ??@string operatorString
+  !@sdmlExpression leftExpr
+  !@sdmlExpression rightExpr
+:
+  leftExpr := [left sdmlExpression !os];
+  rightExpr := [right sdmlExpression !os];
+  if [[leftExpr type] dynamicType] == `@sdmlUnsigned | [[leftExpr type] dynamicType] == `@sdmlInteger then
+    if [[rightExpr type] dynamicType] != `@sdmlUnsigned then
+      error loc: operatorString . " operator expects an unsigned right operand expression";
+    end if;
+  else
+    error loc: operatorString . " operator expects integers or unsigned left operand expression";
+  end if;
+end method;
+
+method @binNode binBoolean
+  ??@os os
+  ??@string operatorString
+  !@sdmlExpression leftExpr
+  !@sdmlExpression rightExpr
+:
+  leftExpr := [left sdmlExpression !os];
+  rightExpr := [right sdmlExpression !os];
+  if [[leftExpr type] dynamicType] == `@sdmlBool then
+    if not [[rightExpr type] isEqualTo ![leftExpr type]] then
+      error loc: operatorString . " operator expects boolean operand expressions";
+    end if;
+  else
+    error loc: operatorString . " operator expects boolean operand expressions";
+  end if;
+end method;
+
+override reader @integerNode sdmlExpression
+  ??@os unused os
+  ->@sdmlExpression outExpr
+:
+  outExpr := [@sdmlIntegerNode new !loc ![@sdmlUnsigned new] !integerValue];
+end reader;
+
+override reader @boolNode sdmlExpression
+  ??@os unused os
+  ->@sdmlExpression outExpr
+:
+  outExpr := [@sdmlBoolNode new !loc ![@sdmlBool new] !boolValue];
+end reader;
+
+override reader @identifierNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlType identType := [[os varDeclarations] identifierType !identifierValue !os];
+  outExpr := [@sdmlIdentifierNode new !loc !identType !identifierValue];
+end reader;
+
+override reader @minNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlType containerType := [[os varDeclarations] identifierType !container !os];
+  if [containerType isCollection] then
+    @sdmlType itemType := [containerType itemType !os];
+    @typeDeclaration itemTypeDeclaration;
+    [[os typeDeclarations] getType ![itemType lTypeName] ?itemTypeDeclaration];
+    @sdmlType fieldType := [itemTypeDeclaration fieldType !os !field];
+    if not [fieldType isOrdered] then
+      @lstring last;
+      [field last ?last];
+      error last : "Field is not of an ordered type" : outExpr;
+    else
+      outExpr := [@sdmlMinNode new !loc !fieldType !field !container];
+    end if;
+  else
+    error [container location]: [container string]." is not a container": outExpr;
+  end if; 
+end reader;
+
+override reader @maxNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlType containerType := [[os varDeclarations] identifierType !container !os];
+  if [containerType isCollection] then
+    @sdmlType itemType := [containerType itemType !os];
+    @typeDeclaration itemTypeDeclaration;
+    [[os typeDeclarations] getType ![itemType lTypeName] ?itemTypeDeclaration];
+    @sdmlType fieldType := [itemTypeDeclaration fieldType !os !field];
+    if not [fieldType isOrdered] then
+      @lstring last;
+      [field last ?last];
+      error last : "Field is not of an ordered type" : outExpr;
+    else
+      outExpr := [@sdmlMaxNode new !loc !fieldType !field !container];
+    end if;
+  else
+    error [container location]: [container string]." is not a container": outExpr;
+  end if; 
+end reader;
+
+override reader @subExprNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression subExpr := [expressionValue sdmlExpression !os];
+  outExpr := [@sdmlSubExprNode new !loc ![subExpr type] !subExpr];
+end reader;
+
+override reader @notNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression expr := [expressionValue sdmlExpression !os];
+  if [[expr type] dynamicType] == `@sdmlBool then
+    outExpr := [@sdmlNotNode new !loc ![expr type] !expr];
+  else
+    error loc: "'!' operator expects a bool expression":outExpr;
+  end if;
+end reader;
+
+override reader @compNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression expr := [expressionValue sdmlExpression !os];
+  if [[expr type] dynamicType] == `@sdmlUnsigned then
+    outExpr := [@sdmlCompNode new !loc ![expr type] !expr];
+  else
+    error loc: "'~' operator expects an unsigned expression":outExpr;
+  end if;
+end reader;
+
+#override reader @emptyNode sdmlExpression
+#  ??@scheduler scheduler
+#  ??@dataMap data
+#  ->@sdmlExpression outExpr
+#:
+#  @exprType containerType := findIdentifierType[!identifier !scheduler !data];
+#  if containerType == [@exprType processType] then
+#    outExpr := [@sdmlEmptyNode new !loc ![@exprType boolType] !identifier];
+#  else
+#    error loc: "process variable expected for empty built-in function": outExpr;
+#  end if;
+#end reader;
+#
+override reader @equalNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameType !os !"'=='" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlEqualNode new !loc ![@sdmlBool new] !leftExpr !rightExpr];
+end reader;
+
+override reader @differNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameType !os !"'!='" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlDifferNode new !loc ![@sdmlBool new] !leftExpr !rightExpr];
+end reader;
+
+override reader @lowerEqualNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'<='" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlLowerEqualNode new !loc ![@sdmlBool new] !leftExpr !rightExpr];
+end reader;
+
+override reader @greaterEqualNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'>='" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlGreaterEqualNode new !loc ![@sdmlBool new] !leftExpr !rightExpr];
+end reader;
+
+override reader @lowerNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'<'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlLowerNode new !loc ![@sdmlBool new] !leftExpr !rightExpr];
+end reader;
+
+override reader @greaterNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'>'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlGreaterNode new !loc ![@sdmlBool new] !leftExpr !rightExpr];
+end reader;
+
+override reader @andNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'&'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlAndNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @orNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'|'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlOrNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @xorNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'^'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlXorNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @shiftLeftNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumberAndUnsigned !os !"'<<'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlShiftLeftNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @shiftRightNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumberAndUnsigned !os !"'<<'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlShiftRightNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @andAndNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binBoolean !os !"'&&'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlAndAndNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @orOrNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binBoolean !os !"'||'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlOrOrNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @addNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'+'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlAddNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @subNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'-'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlSubNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @mulNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'*'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlMulNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @divNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'+'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlDivNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @remainNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpression leftExpr;
+  @sdmlExpression rightExpr;
+  [selfcopy binSameTypeAndNumber !os !"'%'" ?leftExpr ?rightExpr];
+  outExpr := [@sdmlRemainNode new !loc ![leftExpr type] !leftExpr !rightExpr];
+end reader;
+
+override reader @functionCallNode sdmlExpression
+  ??@os os
+  ->@sdmlExpression outExpr
+:
+  @sdmlExpressionList args [emptyList];
+  # get the function declaration for the return type
+  @funcDeclaration declaration;
+  [[os funcDeclarations] getFunction !funcName ?declaration];
+  # check the arguments
+  foreach [declaration arguments], arguments do
+    # get the type of the actual argument
+    @sdmlExpression actualArgument := [exp sdmlExpression !os];
+    if not [[actualArgument type] isEqualTo !type] then
+      error [actualArgument loc]: [type typeName]." expected, got ".[[actualArgument type] typeName];
+    end if;
+    args += !actualArgument;
+  end foreach;
+  outExpr := [@sdmlFunctionCallNode new !loc ![declaration type] !funcName !args];
+end reader;
+
+
+abstract class @assignStatement extends @statement { @lstringlist identifier; }
+class @assignExpressionStatement extends @assignStatement { @expression rightValue; }
+class @assignAddStatement extends @assignExpressionStatement {}
+class @assignSubStatement extends @assignExpressionStatement {}
+class @assignMulStatement extends @assignExpressionStatement {}
+class @assignDivStatement extends @assignExpressionStatement {}
+class @assignRemainStatement extends @assignExpressionStatement {}
+class @assignAndStatement extends @assignExpressionStatement {}
+class @assignOrStatement extends @assignExpressionStatement {}
+class @assignShiftLeftStatement extends @assignExpressionStatement {}
+class @assignShiftRightStatement extends @assignExpressionStatement {}
+class @assignIncStatement extends @assignStatement {}
+class @assignDecStatement extends @assignStatement {}
+class @methodStatement extends @statement { @lstringlist identifier; }
+class @functionCallStatement extends @statement { @lstring funcName; @expressionList arguments; }
+class @ifStatement extends @statement { @expression condition; @statementList trueStatements; @statementList falseStatements; }
+class @moveStatement extends @statement { @lstringlist source; @migrationDestination destination; }
+class @startStatement extends @statement { @lstringlist timer; @expression delay; @bool periodic; @lstringlist methodName; }
+class @foreachStatement extends @statement { @itemAndContainerList iteration; @statementList statements;}
+class @moveeachStatement extends @statement { @lstringlist srcItem; @lstringlist srcContainer; @migrationDestination destination; @expression whileCondition; }
+class @moveeacheachStatement extends @statement { @lstringlist srcItem; @lstringlist srcContainer; @lstring dstItem; @lstringlist dstContainer; @expression whileCondition; }
+
+list @itemAndContainerList {
+  @lstring item;
+  @lstringlist container;
+  @expression where;
+}
+
+list @transitionList {
+  @lstring sourceState;
+  @lstring destinationState;
+  @statementList statements;
+}
+
+#-----------------------------------------------------------------------------
+# sdml statements
+#-----------------------------------------------------------------------------
+abstract class @sdmlStatement extends @statement {}
+abstract class @sdmlAssignStatement extends @sdmlStatement { @lstringlist identifier; }
+class @sdmlAssignExpressionStatement extends @sdmlAssignStatement { @sdmlExpression rightValue; }
+class @sdmlAssignAddStatement extends @sdmlAssignExpressionStatement {}
+class @sdmlAssignSubStatement extends @sdmlAssignExpressionStatement {}
+class @sdmlAssignMulStatement extends @sdmlAssignExpressionStatement {}
+class @sdmlAssignDivStatement extends @sdmlAssignExpressionStatement {}
+class @sdmlAssignRemainStatement extends @sdmlAssignExpressionStatement {}
+class @sdmlAssignAndStatement extends @sdmlAssignExpressionStatement {}
+class @sdmlAssignOrStatement extends @sdmlAssignExpressionStatement {}
+class @sdmlAssignShiftLeftStatement extends @sdmlAssignExpressionStatement {}
+class @sdmlAssignShiftRightStatement extends @sdmlAssignExpressionStatement {}
+class @sdmlAssignIncStatement extends @sdmlAssignStatement {}
+class @sdmlAssignDecStatement extends @sdmlAssignStatement {}
+class @sdmlFunctionCallStatement extends @sdmlStatement { @lstring funcName; @sdmlExpressionList arguments; }
+class @sdmlMethodStatement extends @sdmlStatement { @lstringlist identifier; @lstring parentScheduler; }
+class @sdmlIfStatement extends @sdmlStatement { @sdmlExpression condition; @statementList trueStatements; @statementList falseStatements; }
+class @sdmlMoveStatement extends @sdmlStatement { @lstringlist source; @migrationDestination destination; }
+class @sdmlStartStatement extends @sdmlStatement { @lstringlist timer; @sdmlExpression delay; @bool periodic; @lstringlist methodName; }
+class @sdmlForeachStatement extends @sdmlStatement { @sdmlItemAndContainerList iteration; @statementList statements; }
+class @sdmlMoveeachStatement extends @sdmlStatement { @lstringlist srcItem; @lstringlist srcContainer; @migrationDestination destination; @sdmlExpression whileCondition; }
+class @sdmlMoveeacheachStatement extends @sdmlStatement { @lstringlist srcItem; @lstringlist srcContainer; @lstring dstItem; @lstringlist dstContainer; @sdmlExpression whileCondition; }
+
+#list @sdmlStatementList { @sdmlStatement statement; }
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+reader @statement sdmlStatement
+  ??@os unused os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  error here: "the @statement sdmlStatement reader should not be called": outStatement;
+end reader;
+
+method @assignStatement number
+  ??@os os
+  ??@string operatorString
+:
+  @sdmlType type := [[os varDeclarations] identifierType !identifier !os];
+  if [type dynamicType] != `@sdmlUnsigned & [type dynamicType] != `@sdmlInteger then
+    error loc: operatorString . " operator expects integers or unsigned expression types";
+  end if;
+end method;
+
+method @assignExpressionStatement sameType
+  ??@os os
+  ??@string operatorString
+  !@sdmlExpression exp
+:
+  exp := [rightValue sdmlExpression !os];
+  @sdmlType type := [[os varDeclarations] identifierType !identifier !os];
+  if not [type isEqualTo ![exp type]] then
+    error loc: operatorString . " right expression type does not match the identifier";
+  end if;
+end method;
+
+method @assignExpressionStatement sameTypeAndNumber
+  ??@os os
+  ??@string operatorString
+  !@sdmlExpression exp
+:
+  @sdmlType type := [[os varDeclarations] identifierType !identifier !os];
+  if [type dynamicType] == `@sdmlUnsigned | [type dynamicType] == `@sdmlInteger then
+    [selfcopy sameType !os !operatorString ?exp];
+  else
+    error loc: operatorString . " operator expects integers or unsigned expression types": exp;
+  end if;
+end method;
+
+method @assignExpressionStatement numberAndUnsigned
+  ??@os os
+  ??@string operatorString
+  !@sdmlExpression exp
+:
+  @sdmlType type := [[os varDeclarations] identifierType !identifier !os];
+  if [type dynamicType] == `@sdmlUnsigned | [type dynamicType] == `@sdmlInteger then
+    exp := [rightValue sdmlExpression !os];
+    if [[exp type] dynamicType] != `@sdmlUnsigned then
+      error loc: operatorString . " operator expects right unsigned expression types";
+    end if;
+  else
+    error loc: operatorString . " operator expects integers or unsigned expression types": exp;
+  end if;
+end method;
+
+override reader @assignExpressionStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy sameType !os !"=" ?exp];
+  outStatement := [@sdmlAssignExpressionStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignAddStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy sameTypeAndNumber !os !"+=" ?exp];
+  outStatement := [@sdmlAssignAddStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignSubStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy sameTypeAndNumber !os !"-=" ?exp];
+  outStatement := [@sdmlAssignSubStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignMulStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy sameTypeAndNumber !os !"*=" ?exp];
+  outStatement := [@sdmlAssignMulStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignDivStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy sameTypeAndNumber !os !"/=" ?exp];
+  outStatement := [@sdmlAssignDivStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignRemainStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy sameTypeAndNumber !os !"%=" ?exp];
+  outStatement := [@sdmlAssignRemainStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignAndStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy sameTypeAndNumber !os !"&=" ?exp];
+  outStatement := [@sdmlAssignAndStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignOrStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy sameTypeAndNumber !os !"|=" ?exp];
+  outStatement := [@sdmlAssignOrStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignShiftLeftStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy numberAndUnsigned !os !"<<" ?exp];
+  outStatement := [@sdmlAssignShiftLeftStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignShiftRightStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression exp;
+  [selfcopy numberAndUnsigned !os !">>" ?exp];
+  outStatement := [@sdmlAssignShiftRightStatement new !loc !identifier !exp];
+end reader;
+
+override reader @assignIncStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  [selfcopy number !os !"++"];
+  outStatement := [@sdmlAssignIncStatement new !loc !identifier];
+end reader;
+
+override reader @assignDecStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  [selfcopy number !os !"--"];
+  outStatement := [@sdmlAssignDecStatement new !loc !identifier];
+end reader;
+
+override reader @ifStatement sdmlStatement
+  ??@os os
+  ??@lstring parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlExpression ifCondition := [condition sdmlExpression !os];
+  @statementList IfTrueStatements [emptyList];
+  @statementList IfFalseStatements [emptyList];
+  if [[ifCondition type] dynamicType] == `@sdmlBool then
+    foreach trueStatements do
+      IfTrueStatements += ![statement sdmlStatement !os !parent];
+    end foreach;
+    foreach falseStatements do
+      IfFalseStatements += ![statement sdmlStatement !os !parent];
+    end foreach;
+    outStatement := [@sdmlIfStatement new !loc !ifCondition !IfTrueStatements !IfFalseStatements];
+  else
+    error loc: "Condition expression of a if statement should be boolean": outStatement;
+  end if;
+end reader;
+
+override reader @moveStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  @sdmlType sourceType := [[os varDeclarations] identifierType !source !os];
+#  log sourceType;
+  # the source must be a task
+  if [sourceType dynamicType] != `@sdmlTaskRef & [sourceType dynamicType] != `@sdmlTaskContainer then
+    error loc: "source of a 'move ... to ...' statement must be a task reference type": outStatement;
+  else
+    [destination checkSource !os !source];
+    outStatement := [@sdmlMoveStatement new !loc !source !destination];
+  end if;
+end reader;
+
+#-----------------------------------------------------------------------------
+# For a @methodStatement verify the method exists
+#-----------------------------------------------------------------------------
+override reader @methodStatement sdmlStatement
+  ??@os os
+  ??@lstring parent
+  -> @sdmlStatement outStatement
+:
+#  message "parent = ".[parent string]."\n";
+  @lstring primaryIdentifier;
+  [identifier first ?primaryIdentifier];
+  @lstring secondaryIdentifier;
+  [identifier last ?secondaryIdentifier];
+  if [identifier length] == 1 then
+    # local method call. Get the scheduler declaration
+    @schedulerDeclaration myScheduler;
+    if not [[os schedulerDeclarations] hasKey ![parent string]] then
+      error loc: "method does not exists, did you forget to prefix it by the name of the scheduler ?": myScheduler;
+    else
+      [[os schedulerDeclarations] getScheduler !parent ?myScheduler];
+    end if;
+    @methodDeclaration theMethod;
+    [[myScheduler methods] getMethod !primaryIdentifier ?theMethod];
+  elsif [identifier length] == 2 then
+    # scheduler method call. Get the scheduler declaration
+    @schedulerDeclaration myScheduler;
+    [[os schedulerDeclarations] getScheduler !primaryIdentifier ?myScheduler];
+    @methodDeclaration theMethod;
+    [[myScheduler methods] getMethod !secondaryIdentifier ?theMethod];
+  else
+    error secondaryIdentifier: "unexpected method identifier";
+  end if;
+  outStatement := [@sdmlMethodStatement new !loc !identifier !parent];
+end reader;
+
+#-----------------------------------------------------------------------------
+# For a @startStatement the following is checked
+# - the timer exists
+# - the method exists
+# - the delay evaluates to an unsigned integer
+#-----------------------------------------------------------------------------
+reader @lstringlist location ->@location loc:
+  @lstring last;
+  [selfcopy last ?last];
+  loc := [last location];
+end reader;
+
+reader @lstringlist string ->@string st:
+  st := "";
+  foreach selfcopy do
+    st .= [mValue string];
+  between
+    st .= ".";
+  end foreach;
+end reader;
+
+override reader @startStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  # check the timer
+  if [[[os varDeclarations] identifierType !timer !os] dynamicType] != `@sdmlTimer then
+    error [timer location]: [timer string]. " is not a timer";
+  end if;
+  
+  # check the method
+  
+  # check the delay
+  @sdmlExpression sdmlDelay := [delay sdmlExpression !os];
+  if [[sdmlDelay type] dynamicType] == `@sdmlUnsigned then
+    outStatement := [@sdmlStartStatement new !loc !timer !sdmlDelay !periodic !methodName];
+  else
+    error [sdmlDelay loc]: "Unsigned expression expected": outStatement;
+  end if;
+end reader;
+
+#-----------------------------------------------------------------------------
+# For a @foreachStatement the following is checked
+# - the container is of type container
+#-----------------------------------------------------------------------------
+list @sdmlItemAndContainerList {
+  @lstring item;
+  @lstringlist container;
+  @sdmlExpression where;
+}
+
+override reader @foreachStatement sdmlStatement
+  ??@os os
+  ??@lstring parent
+  -> @sdmlStatement outStatement
+:
+  # check the containers type and add the items in a varDeclarationMap
+  @varDeclarationMap localMap := [@varDeclarationMap mapWithMapToOverride ![os varDeclarations]];
+  @sdmlItemAndContainerList verifiedIteration [emptyList];
+  foreach iteration do
+    @sdmlType containerType := [[os varDeclarations] identifierType !container !os];
+    if not [containerType isCollection] then
+      error [container location]: [container string]." is not a queue type";
+    else
+      @varDeclarationMap iterationLocalMap := [@varDeclarationMap mapWithMapToOverride ![os varDeclarations]];
+      [!?iterationLocalMap putData !item ![@refVar new !item ![containerType itemType !os] !rwAccess[]]];
+      @os osWithIterationLocals := [@os new ![os name] ![os typeDeclarations] !iterationLocalMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
+      @sdmlExpression verifiedWhere := [where sdmlExpression !osWithIterationLocals];
+      # check the type
+      if [[verifiedWhere type] dynamicType] != `@sdmlBool then
+        error [verifiedWhere loc]: "Boolean expression expected";
+      end if;
+      verifiedIteration += !item !container !verifiedWhere;
+      [!?localMap putData !item ![@refVar new !item ![containerType itemType !os] !rwAccess[]]];
+    end if;
+  end foreach;
+  @statementList verifiedStatements [emptyList];
+  @os osWithLocals := [@os new ![os name] ![os typeDeclarations] !localMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
+  foreach statements do
+    @sdmlStatement verifiedStatement := [statement sdmlStatement !osWithLocals !parent];
+    verifiedStatements += !verifiedStatement;
+  end foreach;
+  outStatement := [@sdmlForeachStatement new !loc !verifiedIteration !verifiedStatements];
+end reader;
+
+#-----------------------------------------------------------------------------
+# For a @moveachStatement
+#-----------------------------------------------------------------------------
+override reader @moveeachStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  # Check the source of the moveeach, it should be a container
+  @sdmlType srcContainerType := [[os varDeclarations] identifierType !srcContainer !os];
+  if not [srcContainerType isCollection] then
+    error [srcContainer location]: [srcContainer string]." is not a queue type": outStatement;
+  else
+    # it is a container, so check the srcWhere expression
+    @varDeclarationMap iterationLocalMap := [@varDeclarationMap mapWithMapToOverride ![os varDeclarations]];
+    # the first identifier of the srcItem is the item of the container
+    # the second identifier is the running attribute
+    @lstring primaryIdentifier;
+    [srcItem first ?primaryIdentifier];
+    [!?iterationLocalMap putData !primaryIdentifier ![@refVar new !primaryIdentifier ![srcContainerType itemType !os] !roAccess[]]];
+    @os osWithIterationLocals := [@os new ![os name] ![os typeDeclarations] !iterationLocalMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
+    @sdmlExpression verifiedCondition := [whileCondition sdmlExpression !osWithIterationLocals];
+    # check the type
+    if [[verifiedCondition type] dynamicType] != `@sdmlBool then
+      error [verifiedCondition loc]: "Boolean expression expected": outStatement;
+    else
+      # check the destination of the to, it should a container to
+      [destination checkSource !osWithIterationLocals !srcItem];
+      outStatement := [@sdmlMoveeachStatement new !loc !srcItem !srcContainer !destination !verifiedCondition];
+    end if;
+  end if;    
+end reader;
+
+#-----------------------------------------------------------------------------
+# For a @moveachStatement
+#-----------------------------------------------------------------------------
+override reader @moveeacheachStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  # Check the source of the moveeach, it should be a container
+  @sdmlType srcContainerType := [[os varDeclarations] identifierType !srcContainer !os];
+  if not [srcContainerType isCollection] then
+    error [srcContainer location]: [srcContainer string]." is not a queue type": outStatement;
+  else
+    # it is a container
+    @varDeclarationMap iterationLocalMap := [@varDeclarationMap mapWithMapToOverride ![os varDeclarations]];
+    # the first identifier of the srcItem is the item of the container
+    # the second identifier is the running attribute
+    @lstring primaryIdentifier;
+    [srcItem first ?primaryIdentifier];
+    [!?iterationLocalMap putData !primaryIdentifier ![@refVar new !primaryIdentifier ![srcContainerType itemType !os] !roAccess[]]];
+    # check the destination of the toeach, it should a container to
+    @sdmlType dstContainerType := [[os varDeclarations] identifierType !dstContainer !os];
+    if not [dstContainerType isCollection] then
+      error [dstContainer location]: [dstContainer string]." is not a queue type": outStatement;
+    else
+      [!?iterationLocalMap putData !dstItem ![@refVar new !dstItem ![dstContainerType itemType !os] !roAccess[]]];
+      @os osWithIterationLocals := [@os new ![os name] ![os typeDeclarations] !iterationLocalMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
+      @sdmlExpression verifiedCondition := [whileCondition sdmlExpression !osWithIterationLocals];
+      # check the type
+      if [[verifiedCondition type] dynamicType] != `@sdmlBool then
+        error [verifiedCondition loc]: "Boolean expression expected": outStatement;
+      else
+          outStatement := [@sdmlMoveeacheachStatement new !loc !srcItem !srcContainer !dstItem !dstContainer !verifiedCondition];
+      end if;
+    end if;
+  end if;    
+end reader;
+
+override reader @functionCallStatement sdmlStatement
+  ??@os os
+  ??@lstring unused parent
+  -> @sdmlStatement outStatement
+:
+  # Check the return Type is none
+  @funcDeclaration declaration;
+  [[os funcDeclarations] getFunction !funcName ?declaration];
+  if [[declaration type] dynamicType] != `@sdmlNone then
+    error funcName: "function with no return type expected";
+  end if;
+  # Check the arguments
+  @sdmlExpressionList args [emptyList];
+  foreach [declaration arguments], arguments do
+    # get the type of the actual argument
+    @sdmlExpression actualArgument := [exp sdmlExpression !os];
+    if not [[actualArgument type] isEqualTo !type] then
+      error [actualArgument loc]: [type typeName]." expected, got ".[[actualArgument type] typeName];
+    end if;
+    args += !actualArgument;
+  end foreach;
+  outStatement := [@sdmlFunctionCallStatement new !loc !funcName !args]; 
+end reader;
+
+#override reader @sendStatement sdmlStatement
+#  ??@scheduler scheduler
+#  ??@dataMap data
+#  -> @sdmlStatement outStatement
+#:
+#  if  [[scheduler events] hasKey ![event string]] then
+#    @exprType type;
+#    [data get !target ?type ?* ?*];
+#    if type == [@exprType processType] then
+#      outStatement := [@sdmlSendStatement new !loc !event !target];
+#    else
+#      error loc: "Process expected as target": outStatement;
+#    end if;
+#  else
+#    error loc: "event ".[event string]." is not declared": outStatement;
+#  end if;  
+#end reader;
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+list @methodList {
+  @statementList statements;
+}
+
+class @scheduler {
+  @lstring schedulerName;
+  @lstring taskType;
+  @lstring cpuType;
+  @methodList methods;
+}
+
+#method @scheduler check:
+#  foreach handlers do
+#    foreach statements do
+##      [statement check];
+#    end foreach;
+#  end foreach;
+#end method;
+
+reader @typeDeclaration fieldType
+  ??@os os
+  ?@lstringlist identifierName
+  ->@sdmlType result
+:
+  result := [fields identifierType !identifierName !os];
+end reader;
+
+reader @typeDeclaration allFields
+  ??@os unused os
+  ->@varDeclarationMap all
+:
+  all := fields;
+end reader;
+
+override reader @taskDeclaration allFields
+  ??@os os
+  ->@varDeclarationMap all
+:
+  all := fields;
+  if [father string] != "" then
+    @typeDeclaration fatherTask;
+    [[os typeDeclarations] getTaskType !father ?fatherTask];
+    @varDeclarationMap ancestors := [fatherTask allFields !os];
+    foreach ancestors do
+      [!?all putData !lkey !var];
+    end foreach;
+  end if;
+end reader;
+
+override reader @taskDeclaration fieldType
+  ??@os os
+  ?@lstringlist identifierName
+  ->@sdmlType result
+:
+  @varDeclarationMap allFields := [selfcopy allFields !os];
+  result := [allFields identifierType !identifierName !os];
+end reader;
+
+reader @builtInVar varType
+  ??@os unused os
+  ?@lstringlist identifierName
+  ->@sdmlType result
+:
+  if [type dynamicType] == `@sdmlTimer then
+    if [identifierName length] == 0 then
+      result := type;
+    elsif [identifierName length] == 1 then
+      @lstring attribute;
+      [identifierName first ?attribute];
+      if [attribute string] == "date" | [attribute string] == "remaining" then
+        result := [@sdmlUnsigned new];
+      else
+        error attribute: "unknow timer method": result;
+      end if;
+    else
+      @lstring attribute;
+      [identifierName first ?attribute];
+      error attribute: "unknow timer method": result;
+    end if;
+  else
+    if [identifierName length] == 0 then
+      result := type;
+    else
+      error name: "scalar type has no attribute": result;
+    end if;
+  end if;
+end reader;
+
+override reader @refVar varType
+  ??@os os
+  ?@lstringlist identifierName
+  ->@sdmlType result
+:
+  if [identifierName length] == 0 then
+    result := type;
+  else
+    @lstring fieldName;
+    [identifierName first ?fieldName];
+    if [fieldName string] == "isempty" then
+      if [identifierName length] == 1 then
+        result := [@sdmlBool new];
+      else
+        error fieldName: "isempty has no subattribute": result;
+      end if;
+    elsif [type isCollection] then
+      if [fieldName string] == "first" | [fieldName string] == "last" then
+#        log identifierName;
+        if [identifierName length] == 1 then
+          result := [type itemType !os];
+#          log type;
+#          log result;
+        else
+          [!?identifierName popFirst ?fieldName];
+          @typeDeclaration typeDeclaration;
+          [[os typeDeclarations] getType ![type lTypeName] ?typeDeclaration];
+          result := [typeDeclaration fieldType !os !identifierName];
+        end if;
+      else
+        error fieldName: "unknown field": result;
+      end if;
+    else
+#      log identifierName;
+#      log "DATA STRUCT": selfcopy;
+#      log context;
+      if [identifierName length] == 1 then
+        @typeDeclaration typeDeclaration;
+        [[os typeDeclarations] getType ![type lTypeName] ?typeDeclaration];
+        result := [typeDeclaration fieldType !os !identifierName];
+      else
+        @typeDeclaration typeDeclaration;
+        [[os typeDeclarations] getType ![type lTypeName] ?typeDeclaration];
+#        @declaration fieldDeclaration;
+#        [typeDeclaration get !fieldName ?fieldDeclaration];
+        
+#        message "############################\n";
+#        log identifierName;
+#        log fieldDeclaration;
+        result := [typeDeclaration fieldType !os !identifierName];
+#          message "############################\n";
+      end if;
+    end if;
+  end if;
+end reader;
+
+reader @varDeclarationMap identifierType
+  ?@lstringlist identifierName
+  ??@os os
+  ->@sdmlType type
+:
+  @lstring primaryIdentifierName;
+  [!?identifierName popFirst ?primaryIdentifierName];
+  @varDeclaration identifier;
+  [selfcopy getData !primaryIdentifierName ?identifier];
+  cast identifier:
+    when >= @builtInVar biv do
+      type := [biv varType !os !identifierName];
+    else
+      error primaryIdentifierName : [primaryIdentifierName string]." is not a type": type;
+  end cast;
+end reader;
+
+reader @typeDeclarationMap ancestorsList
+  ??@lstring leafType
+  ->@lstringlist typeList
+:
+  if [leafType string] != "" then
+    typeList := [@lstringlist listWithValue !leafType];
+    @typeDeclaration leafTypeDeclaration;
+    [selfcopy getTaskType !leafType ?leafTypeDeclaration];
+    cast leafTypeDeclaration:
+    when == @taskDeclaration td do
+      @lstringlist ancestors := [selfcopy ancestorsList ![td father]];
+      typeList := typeList . ancestors;
+    else
+      error leafType: "type ".leafType." should be a task type": typeList;
+    end cast;
+  else
+    typeList := [@lstringlist emptyList];
+  end if;
+end reader;
+
+reader @varDeclarationMap identifierTypeList
+  ?@lstringlist identifierName
+  ??@os os
+  ->@lstringlist typeList
+:
+ @sdmlType type := [selfcopy identifierType !identifierName !os];
+ typeList := [[os typeDeclarations] ancestorsList ![type lTypeName]];
+end reader;
+  
+reader @lstringlist mayContain
+  ??@lstring otherType
+  ->@bool result
+:
+  result := false;
+  foreach selfcopy do
+    result := result | ([mValue string] == [otherType string]);
+  end foreach;
+end reader;
+
+
+#function findIdentifierType
+#  ?@lstringlist identifier
+#  ??@declarationMap declarations
+#  ->@exprType type
+#:
+#  @lstring primaryIdentifier;
+#  [!?identifier popFirst ?primaryIdentifier];
+# 
+#  # look for it in the local data
+#  @exprType identifierType;
+#  
+#  [declarations getData !primaryIdentifier ?identifierType ?* ?*];
+#  if identifierType == [@exprType processType] then
+#    if [identifier length] > 0 then
+#      @lstring secondaryIdentifier;
+#      [!?identifier popFirst ?secondaryIdentifier];
+#      @typeMap proc := [scheduler process];
+#      @lstring className;
+#      [proc get !secondaryIdentifier ?* ?* ?identifierType ?className];
+#      if identifierType == [@exprType objectType] then
+#        if [identifier length] > 0 then
+#          @lstring tertiaryIdentifier;
+#          [!?identifier popFirst ?tertiaryIdentifier];
+#          @typeMap fields;
+#          [[scheduler classes] get !className ?fields];
+#          [fields get !tertiaryIdentifier ?* ?* ?identifierType ?*];
+#        end if;
+#      end if;
+#    end if;
+#  end if;
+#  type := identifierType;
+#end function;
+
+#routine checkStatements
+#  ??@scheduler scheduler
+#  ??@dataMap data
+#  ??@statementList statements
+#:
+#  foreach statements do
+#    @sdmlStatement sdmlStatement := [statement sdmlStatement !scheduler !data];
+#  end foreach;
+#end routine;
+
+#method @transitionEventStatement check
+#  ??@scheduler scheduler
+#  ??@dataMap data
+#:
+#  [[scheduler states] get !sourceState];
+#  [[scheduler states] get !destinationState];
+#  @sdmlExpression cond := [condition sdmlExpression !scheduler !data];
+#  if [cond type] != [@exprType boolType] then
+#    error [cond loc]: "boolean expression expected";
+#  end if;
+#end method;
+
+#routine checkEvents
+#  ??@scheduler scheduler
+#:
+#  foreach [scheduler handlers] do
+#    checkStatements !scheduler ![scheduler globals] !statements;
+#  end foreach;
+#  foreach [scheduler events] do
+#    @dataMap localData := [@dataMap mapWithMapToOverride ![scheduler globals]];
+#    [!?localData put !processName ![@exprType processType] !false !emptylstring[]];
+#    checkStatements !scheduler !localData ![[event beforeActions] codeStatements];
+#    checkStatements !scheduler !localData ![[event afterActions] codeStatements];
+#    foreach [event transitions] do
+#      checkStatements !scheduler !localData ![transition code];
+#      [transition check !scheduler !localData];
+#    end foreach; 
+#  end foreach;
+#  foreach [scheduler rules] do
+#    @sdmlExpression cond := [condition sdmlExpression !scheduler ![scheduler globals]];
+#    if [cond type] != [@exprType boolType] then
+#      error [cond loc]: "Boolean expression expected";
+#    end if;
+#    checkStatements !scheduler ![scheduler globals] !statements;
+#  end foreach;
+#end routine;
+#
+#routine checkScheduler
+#  ??@scheduler scheduler
+#:
+#  checkEvents !scheduler;
+#end routine;
+
+#---------------------------------------------------------------------------*
+# itemType reader
+#
+reader @sdmlType itemType
+  ??@os unused os
+  ->@sdmlType result
+:
+  result := selfcopy;
+end reader;
+
+override reader @sdmlCollection itemType
+  ??@os os
+  ->@sdmlType result
+:
+  @typeDeclaration type;
+  [[os typeDeclarations] getType !name ?type];
+  cast type:
+  when == @taskDeclaration do
+    result := [@sdmlTaskRef new !name];
+  when == @cpuDeclaration do
+    result := [@sdmlCpuRef new !name];
+  else
+    error name: "unexpected item type": result;
+  end cast;
+end reader;
+
+end semantics ;

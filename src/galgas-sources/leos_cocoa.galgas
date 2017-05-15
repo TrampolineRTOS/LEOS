@@ -1,0 +1,15 @@
+gui sdml_cocoa "cocoa" :
+
+with option "sdml_options.gOption" ;
+
+with lexique "sdml_lexique.gLexique" {
+  fileExtension: "sdml" ;
+  title: "Source" ;
+}
+
+with lexique "template_scanner.gLexique" {
+  fileExtension: "sdmlTemplate" ;
+  title: "Template" ;
+}
+
+end gui ;
