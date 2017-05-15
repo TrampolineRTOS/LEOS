@@ -1,583 +1,587 @@
-syntax sdml_syntax ("sdml_lexique.gLexique") :
+syntax leos_syntax (leos_lexique) {
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-nonterminal <expression> !@expression expr;
-nonterminal <expression_list> !@expressionList expList;
+#nonterminal <expression> !@expression expr
+#nonterminal <expression_list> !@expressionList expList
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <start_symbol> !@os os:
-  @typeDeclarationMap typeDeclarations [emptyMap];
-  @varDeclarationMap varDeclarations [emptyMap];
-  @schedulerDeclarationMap schedulerDeclarations [emptyMap];
-  @transDeclarationMap transDeclarations [emptyMap];
-  @funcDeclarationMap funcDeclarations [emptyMap];
-  @backendDeclarationMap backendDeclarations [emptyMap];
+rule <start_symbol> !@os os {
+  @typeDeclarationMap typeDeclarations = {}
+  @varDeclarationMap varDeclarations = {}
+  @schedulerDeclarationMap schedulerDeclarations = {}
+  @transDeclarationMap transDeclarations = {}
+  @funcDeclarationMap funcDeclarations = {}
+  @backendDeclarationMap backendDeclarations = {}
   
-  $os$; $identifier$ ?@lstring osName; ${$;
+  $os$ $identifier$ ?let @lstring osName ${$
   repeat
-  while <taskType_declaration> !?typeDeclarations;
-  while <cpuType_declaration> !?typeDeclarations;
-  while <var_declaration> !?varDeclarations;
-  while <scheduler_declaration> !?schedulerDeclarations;
-  while <trans_declaration> !?transDeclarations;
-  while <function_declaration> !?funcDeclarations;
-  while <backend_declaration> !?backendDeclarations;
-  end repeat;
-  $}$;
+  while <taskType_declaration> !?typeDeclarations
+  while <cpuType_declaration> !?typeDeclarations
+  while <var_declaration> !?varDeclarations
+  while <scheduler_declaration> !?schedulerDeclarations
+  while <trans_declaration> !?transDeclarations
+  while <function_declaration> !?funcDeclarations
+  while <backend_declaration> !?backendDeclarations
+  end
+  $}$
     
-  os := [@os new
+  os = @os.new {
           !osName
           !typeDeclarations
           !varDeclarations
           !funcDeclarations
           !schedulerDeclarations
           !transDeclarations
-          !backendDeclarations
-        ];
-end rule ;
+          !backendDeclarations }
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
 rule <taskType_declaration>
   ?!@typeDeclarationMap declarations
-:
-  @lstring taskTypeName;
-  @lstringmap states;
-  @varDeclarationMap fields [emptyMap];
-  @lstring ancestor;
+{
+  @lstring taskTypeName
+  @lstringmap states = {}
+  @varDeclarationMap fields = {}
+  @lstring ancestor
   
-  $task$; $identifier$ ?taskTypeName; <state_list> ?states;
+  $task$ $identifier$ ?taskTypeName <state_list> ?states
   select
-    $extends$; $identifier$ ?ancestor;
+    $extends$ $identifier$ ?ancestor
   or
-    ancestor := emptylstring[];
-  end select;
+    ancestor = emptylstring()
+  end
   select
-    ${$;
+    ${$
     repeat
-    while <var_declaration> !?fields;
-    end repeat;
-    $}$;
-  or end select;
+    while <var_declaration> !?fields
+    end
+    $}$
+  or 
+  end
   #
   # Allowed transition and associated code
   #
-  <allowed_transitions> ?@transitionList transitions;
+  <allowed_transitions> ?@transitionList transitions
 
-  @taskDeclaration task := [@taskDeclaration new !taskTypeName !fields !transitions !ancestor !states];
-  [!?declarations putTaskType !taskTypeName !task];
-end rule;
+  @taskDeclaration task = @taskDeclaration.new {!taskTypeName !fields !transitions !ancestor !states}
+  [!?declarations putTaskType !taskTypeName !task]
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
 rule <cpuType_declaration>
   ?!@typeDeclarationMap declarations
-:
-  $cpu$; $identifier$ ?@lstring cpuTypeName;
-  $with$; $identifier$ ?@lstring taskName;
-  <cpu_state_list> ?@acceptMap states;
-  @varDeclarationMap fields [emptyMap];
+{
+  $cpu$ $identifier$ ?let @lstring cpuTypeName
+  $with$ $identifier$ ?let @lstring taskName
+  <cpu_state_list> ?@acceptMap states
+  @varDeclarationMap fields = {}
   # compute the attributes of the running field
   # this field is a scalar
   # it accepts all the corresponding task states defined in the cpu states
-  @lstringmap acceptedStates [emptyMap];
-  foreach states do
-    cast accept:
-    when == @taskAcceptStatement tas do
-      [!?acceptedStates putState ![tas taskState]];
-    else end cast;
-  end foreach;
+  @lstringmap acceptedStates = {}
+  for () in states do
+    cast accept
+    case == @taskAcceptStatement tas :
+      [!?acceptedStates putState ![tas taskState]]
+    else end 
+  end
   [!?fields putData
-    !lstringwith[!"running"]
-    ![@sdmlContainerVar new !lstringwith[!"running"] ![@sdmlTaskContainer new !taskName] !rwAccess[] !acceptedStates ![@sdmlOrderingList emptyList]]
-  ];
+    !lstringwith !"running"
+    !@sdmlContainerVar.new {!lstringwith !"running"} !@sdmlTaskContainer.new {!taskName} !rwAccess() !acceptedStates !@sdmlOrderingList.emptyList
+  ]
   select
-    ${$;
+    ${$
     repeat
-    while <var_declaration> !?fields;
-    end repeat;
-    $}$;
-  or end select;
-  <allowed_transitions> ?@transitionList transitions;
-  @cpuDeclaration cpu := [@cpuDeclaration new !cpuTypeName !fields !transitions !taskName !states];
-  [!?declarations putCpuType !cpuTypeName !cpu];
-end rule;
+    while <var_declaration> !?fields
+    end
+    $}$
+  or 
+  end
+  <allowed_transitions> ?@transitionList transitions
+  @cpuDeclaration cpu = @cpuDeclaration.new {!cpuTypeName !fields !transitions !taskName !states}
+  [!?declarations putCpuType !cpuTypeName !cpu]
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <allowed_transitions> !@transitionList allowed:
-  $($;
-  allowed := [@transitionList emptyList];
+rule <allowed_transitions> !@transitionList allowed{
+  $($
+  allowed = @transitionList.emptyList
   repeat
-    $identifier$ ?@lstring source;
-    $->$;
-    $identifier$ ?@lstring destination;
-    @statementList statements [emptyList];
+    $identifier$ ?let @lstring source
+    $->$
+    $identifier$ ?let @lstring destination
+    @statementList statements = @statementList.emptyList
     select
-      <statement_list> ?statements;
-    or end select;
-    allowed += !source !destination !statements;
+      <statement_list> ?statements
+    or 
+    end
+    allowed += !source !destination !statements
   while
-    $,$;
-  end repeat;
-  $)$;
-end rule;
+    $,$
+  end
+  $)$
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <static_type> !@sdmlType type:
+rule <static_type> !@sdmlType type{
   select
-    $int$; type := [@sdmlInteger new];
+    $int$ type = @sdmlInteger.new{}
   or
-    $unsigned$; type := [@sdmlUnsigned new];
+    $unsigned$ type = @sdmlUnsigned.new{}
   or
-    $bool$; type := [@sdmlBool new];
+    $bool$ type = @sdmlBool.new{}
   or
-    $identifier$ ?@lstring typeName; type := [@sdmlCustom new !typeName];
-  end select;
-end rule;
+    $identifier$ ?let @lstring typeName type = @sdmlCustom.new {!typeName}
+  end
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <function_declaration> ?!@funcDeclarationMap declarations:
-  $function$;
-  <static_type> ?@sdmlType functionType;
-  $identifier$ ?@lstring functionName;
-  $($;
-  <argument_list> ?@argumentList arguments;
-  $)$;
-  <declaration_list> ?@varDeclarationMap functionLocals;
-  <statement_list> ?@statementList statements;
-  @funcDeclaration func := [@funcDeclaration new !functionName !functionType !arguments !functionLocals !statements];
-  [!?declarations putFunction !functionName !func];
-end rule;
+rule <function_declaration> ?!@funcDeclarationMap declarations{
+  $function$
+  <static_type> ?let @sdmlType functionType
+  $identifier$ ?let @lstring functionName
+  $($
+  <argument_list> ?@argumentList arguments
+  $)$
+  <declaration_list> ?@varDeclarationMap functionLocals
+  <statement_list> ?@statementList statements
+  @funcDeclaration function = @funcDeclaration.new {!functionName !functionType !arguments !functionLocals !statements}
+  [!?declarations putFunction !functionName !function]
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <argument_list> !@argumentList arguments:
-  arguments := [@argumentList emptyList];
+rule <argument_list> !@argumentList arguments{
+  arguments = @argumentList.emptyList
   repeat
-    <static_type> ?@sdmlType type;
-    $identifier$ ?@lstring name;
-    arguments += !name !type;
-  while $,$;
-  end repeat;
-end rule;
+    <static_type> ?@sdmlType type
+    $identifier$ ?let @lstring name
+    arguments += !name !type
+  while $,$
+  end
+}
 
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <local_var_declaration> ?!@varDeclarationMap declarations:
+rule <local_var_declaration> ?!@varDeclarationMap declarations{
   select
-    $int$; $identifier$ ?@lstring varName; <access_right> ?@accessRight access;
-    [!?declarations putData !varName ![@builtInVar new !varName ![@sdmlInteger new] !access]];
+    $int$ $identifier$ ?let @lstring varName <access_right> ?@accessRight access
+    [!?declarations putData !varName !@builtInVar.new {!varName} !@sdmlInteger.new {!access}]
   or
-    $unsigned$; $identifier$ ?@lstring varName; <access_right> ?@accessRight access;
-    [!?declarations putData !varName ![@builtInVar new !varName ![@sdmlUnsigned new] !access]];
+    $unsigned$ $identifier$ ?let @lstring varName <access_right> ?@accessRight access
+    [!?declarations putData !varName !@builtInVar.new {!varName} !@sdmlUnsigned.new {!access}]
   or
-    $bool$; $identifier$ ?@lstring varName; <access_right> ?@accessRight access;
-    [!?declarations putData !varName ![@builtInVar new !varName ![@sdmlBool new] !access]];
-  end select;
-end rule;
+    $bool$ $identifier$ ?let @lstring varName <access_right> ?@accessRight access
+    [!?declarations putData !varName !@builtInVar.new {!varName} !@sdmlBool.new {!access}]
+  end
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <var_declaration> ?!@varDeclarationMap declarations:
+rule <var_declaration> ?!@varDeclarationMap declarations{
   select
-    <local_var_declaration> !?declarations;
+    <local_var_declaration> !?declarations
   or
-    $timer$; $identifier$ ?@lstring varName;
-    [!?declarations putData !varName ![@builtInVar new !varName ![@sdmlTimer new] !rwAccess[]]];
+    $timer$ $identifier$ ?let @lstring varName
+    [!?declarations putData !varName !@builtInVar.new {!varName !@sdmlTimer.new{} !rwAccess()}]
   or
-    <container_declaration> !?declarations;
-  end select;
-  $;$;
-end rule;
+    <container_declaration> !?declarations
+  end
+  $;$
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <container_declaration> ?!@varDeclarationMap declarations:
-    $container$;
-    $identifier$ ?@lstring typeName;
-    @lstringmap states [emptyMap];
-    @orderingList ordering [emptyList];
-    @sdmlType type;
+rule <container_declaration> ?!@varDeclarationMap declarations{
+    $container$
+    $identifier$ ?let @lstring typeName
+    @lstringmap states = {}
+    @orderingList ordering = .emptyList
+    @sdmlType type
     select
-      $queue$;
-      type := [@sdmlCollection new !typeName];
+      $queue$
+      type = @sdmlCollection.new {!typeName}
     or
-      type := [@sdmlCustom new !typeName];    
-    end select;
-    $identifier$ ?@lstring varName;
+      type = @sdmlCustom.new {!typeName}    
+    end
+    $identifier$ ?let @lstring varName
     select
-      <state_list> ?states;
-    or end select;
+      <state_list> ?states
+    or
+    end
     select
-      $sorted$; $by$; <ordering_list> ?ordering;
+      $sorted$ $by$ <ordering_list> ?ordering
       if [type dynamicType] == `@sdmlCustom then
-        error here: "ordering is invalid for scalar containers";
-      end if;
-    or end select;
-    [!?declarations putData !varName ![@containerVar new !varName !type !rwAccess[] !states !ordering]];
-end rule;
+        error here: "ordering is invalid for scalar containers"
+      end
+    or 
+    end
+    [!?declarations putData !varName !@containerVar.new {!varName !type !rwAccess() !states !ordering}]
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <trans_declaration> ?!@transDeclarationMap declarations:
-  $transitions$; $identifier$ ?@lstring transName; $($;
-  $identifier$ ?@lstring taskType;
-  $identifier$ ?@lstring taskName;
-  $)$; ${$;
-  @transitionList transitions [emptyList];
+rule <trans_declaration> ?!@transDeclarationMap declarations{
+  $transitions$ $identifier$ ?let @lstring transName $($
+  $identifier$ ?let @lstring taskType
+  $identifier$ ?let @lstring taskName
+  $)$ ${$
+  @transitionList transitions = .emptyList
   repeat
   while
-    $identifier$ ?@lstring source;
-    $->$;
-    $identifier$ ?@lstring destination;
-    <statement_list> ?@statementList statements;
-    transitions += !source !destination !statements;
-  end repeat;
-  [!?declarations putTrans !transName ![@transDeclaration new !transName !taskType !taskName !transitions]];
-  $}$;
-end rule;
+    $identifier$ ?let @lstring source
+    $->$
+    $identifier$ ?let @lstring destination
+    <statement_list> ?@statementList statements
+    transitions += !source !destination !statements
+  end
+  [!?declarations putTrans !transName !@transDeclaration.new {!transName !taskType !taskName !transitions}]
+  $}$
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
 rule <state_list>
   !@lstringmap states
-:
-  $[$;
-  states := [@lstringmap emptyMap];
+{
+  $[$
+  states = @lstringmap.emptyMap
   repeat
-    $identifier$ ?@lstring stateName;
-    [!?states putState !stateName];
+    $identifier$ ?let @lstring stateName
+    [!?states putState !stateName]
   while
-    $,$;
-  end repeat;
-  $]$;
-end rule;
+    $,$
+  end
+  $]$
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
 rule <cpu_state_list>
   !@acceptMap states
-:
-  $[$;
-  states := [@acceptMap emptyMap];
+{
+  $[$
+  states = @acceptMap.emptyMap
   repeat
-    @acceptStatement accept;
-    $identifier$ ?@lstring cpuStateName;
-    $:$;
+    @acceptStatement accept
+    $identifier$ ?let @lstring cpuStateName
+    $:$
     select
-      $task$; $in$; $identifier$ ?@lstring taskStateName;
-      accept := [@taskAcceptStatement new !cpuStateName !taskStateName];
+      $task$ $in$ $identifier$ ?let @lstring taskStateName
+      accept = @taskAcceptStatement.new {!cpuStateName !taskStateName}
     or
-      $empty$;
-      accept := [@emptyAcceptStatement new !cpuStateName];
-    end select;
-    [!?states putState !cpuStateName !accept];
+      $empty$
+      accept = @emptyAcceptStatement.new {!cpuStateName}
+    end
+    [!?states putState !cpuStateName !accept]
   while
-    $,$;
-  end repeat;
-  $]$;
-end rule;
+    $,$
+  end
+  $]$
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
 rule <scheduler_declaration>
   ?!@schedulerDeclarationMap declarations
-:
-  $scheduler$; $identifier$ ?@lstring schedulerName;
-  $with$; $identifier$ ?@lstring task;
-  $on$; $identifier$ ?@lstring cpu;
-  ${$;
-  @varDeclarationMap locals [emptyMap];
-  @methodDeclarationMap methods [emptyMap];
+{
+  $scheduler$ $identifier$ ?let @lstring schedulerName
+  $with$ $identifier$ ?let @lstring task
+  $on$ $identifier$ ?let @lstring cpu
+  ${$
+  @varDeclarationMap locals = .emptyMap
+  @methodDeclarationMap methods = .emptyMap
   repeat
   while
-    $method$; $identifier$ ?@lstring methodName;
-    <declaration_list> ?@varDeclarationMap methodLocals;
-    <statement_list> ?@statementList statements;
-    [!?methods putMethod !methodName ![@methodDeclaration new !methodName !methodLocals !statements]];
+    $method$ $identifier$ ?let @lstring methodName
+    <declaration_list> ?@varDeclarationMap methodLocals
+    <statement_list> ?@statementList statements
+    [!?methods putMethod !methodName !@methodDeclaration.new {!methodName !methodLocals !statements}]
   while
-    $init$; @lstring methodName := [@lstring new !"init" !here];
-    <declaration_list> ?@varDeclarationMap methodLocals;
-    <statement_list> ?@statementList statements;
-    [!?methods putMethod !methodName ![@methodDeclaration new !methodName !methodLocals !statements]];
+    $init$ @lstring methodName = @lstring.new {!"init" !here}
+    <declaration_list> ?@varDeclarationMap methodLocals
+    <statement_list> ?@statementList statements
+    [!?methods putMethod !methodName !@methodDeclaration.new {!methodName !methodLocals !statements}]
   while
-    <var_declaration> !?locals;
-  end repeat;
-  $}$;
-  [!?declarations putScheduler !schedulerName ![@schedulerDeclaration new !schedulerName !task !cpu !locals !methods]];
-end rule;
+    <var_declaration> !?locals
+  end
+  $}$
+  [!?declarations putScheduler !schedulerName !@schedulerDeclaration.new {!schedulerName !task !cpu !locals !methods}]
+}
   
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <backend_declaration> ?!@backendDeclarationMap declarations:
-  $backend$;
-  $identifier$ ?@lstring backendName;
-  $($;
-  <argument_list> ?@argumentList arguments;
-  $)$;
-  ${$;
-  @keyedStatementMap keyStatements [emptyMap];
-  @keyedIdentifierMap keyIdentifier [emptyMap];
+rule <backend_declaration> ?!@backendDeclarationMap declarations{
+  $backend$
+  $identifier$ ?let @lstring backendName
+  $($
+  <argument_list> ?@argumentList arguments
+  $)$
+  ${$
+  @keyedStatementMap keyStatements = .emptyMap
+  @keyedIdentifierMap keyIdentifier = .emptyMap
   repeat
-    $identifier$ ?@lstring key;
+    $identifier$ ?let @lstring key
     select
-      <statement_list> ?@statementList statements;
+      <statement_list> ?@statementList statements
       [!?keyStatements putStatements !key !statements];
     or
-      $for$;
-      <full_identifier> ?@lstringlist identifier;
-      [!?keyIdentifier putIdentifier !key !identifier];
-    end select;
-  while end repeat;
-  $}$;
-  @backendDeclaration backend := [@backendDeclaration new !backendName !arguments !keyStatements !keyIdentifier];
-  [!?declarations putBackend !backendName !backend];
+      $for$
+      <full_identifier> ?@lstringlist identifier
+      [!?keyIdentifier putIdentifier !key !identifier]
+    end
+  while end
+  $}$
+  @backendDeclaration backend = @backendDeclaration.new {!backendName !arguments !keyStatements !keyIdentifier}
+  [!?declarations putBackend !backendName !backend]
 #  message "Backend ".backendName." added\n";
-end rule;
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <condition> !@expression expr:
-  $($;
-  <expression> ?expr;
-  $)$;
-end rule;
+rule <condition> !@expression expr{
+  $($
+  <expression> ?expr
+  $)$
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <declaration_list> !@varDeclarationMap vars:
-  vars := [@varDeclarationMap emptyMap];
+rule <declaration_list> !@varDeclarationMap vars{
+  vars = @varDeclarationMap.emptyMap
   repeat while
-    <local_var_declaration> !?vars;
-    $;$;
-  end repeat;
-end rule;
+    <local_var_declaration> !?vars
+    $;$
+  end
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement_list> !@statementList code:
-  code := [@statementList emptyList];
-  ${$;
+rule <statement_list> !@statementList code{
+  code = @statementList.emptyList
+  ${$
   repeat
   while
-    @statement statement;
-    <statement> ?statement;
-    code += !statement;
-  end repeat;
-  $}$;
-end rule;
+    @statement statement
+    <statement> ?statement
+    code += !statement
+  end
+  $}$
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
 rule <ordering_list>
   !@orderingList ordering
-:
-  ordering := [@orderingList emptyList];
+{
+  ordering = @orderingList.emptyList
   repeat
-    <expression> ?@expression key; $:$;
-    @bool up;
+    <expression> ?@expression key $:$
+    @bool up
     select
-      $<$; up := true;
+      $<$ up = true
     or
-      $>$; up := false;
-    end select;
-    ordering += !key !up;
+      $>$ up = false
+    end
+    ordering += !key !up
   while
-    $,$;
-  end repeat;
-end rule;
+    $,$
+  end
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement:
-  @lstringlist identifier;
-  <full_identifier> ?identifier;
+rule <statement> !@statement statement{
+  @lstringlist identifier
+  <full_identifier> ?identifier
   select
-    @lstring funcName;
+    @lstring funcName
     if [identifier length] > 1 then
-      error here: "function name expected": funcName;
+      error here: "function name expected": funcName
     else
-      [identifier first ?funcName];
-    end if;
-    $($; 
-    @expressionList expList [emptyList];
-    select <expression_list> ?expList; or end select;
-    $)$; # function call
-    statement := [@functionCallStatement new !here !funcName !expList];
+      [identifier first ?funcName]
+    end
+    $($ 
+    @expressionList expList = .emptyList
+    select <expression_list> ?expList or end
+    $)$ # function call
+    statement = @functionCallStatement.new {!here !funcName !expList}
   or
-    <assignment> !identifier ?statement;
-  end select;
-  $;$;
-end rule;
+    <assignment> !identifier ?statement
+  end
+  $;$
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement:
-  $move$;
+rule <statement> !@statement statement{
+  $move$
   select
-    $each$;
-    <full_identifier> ?@lstringlist sourceItem;
-    $in$;
-    <full_identifier> ?@lstringlist sourceContainer;
-    $to$;
+    $each$
+    <full_identifier> ?@lstringlist sourceItem
+    $in$
+    <full_identifier> ?@lstringlist sourceContainer
+    $to$
     select
-      $each$;
-      $identifier$ ?@lstring destItem;
-      $in$;
-      <full_identifier> ?@lstringlist destContainer;
-      @expression condition;
+      $each$
+      $identifier$ ?let @lstring destItem
+      $in$
+      <full_identifier> ?@lstringlist destContainer
+      @expression condition
       select
-        $while$;
-        <expression> ?condition;
+        $while$
+        <expression> ?condition
       or
-        condition := [@boolNode new !here ![@lbool new !true !here]];
-      end select;
-      statement := [@moveeacheachStatement new !here !sourceItem !sourceContainer !destItem !destContainer !condition];
+        condition = @boolNode.new {!here !@lbool.new {!true !here}}
+      end
+      statement = @moveeacheachStatement.new {!here !sourceItem !sourceContainer !destItem !destContainer !condition}
     or   
-      <move_destination> ?@migrationDestination destination;
-      @expression condition;
+      <move_destination> ?@migrationDestination destination
+      @expression condition
       select
-        $while$;
-        <expression> ?condition;
+        $while$
+        <expression> ?condition
       or
-        condition := [@boolNode new !here ![@lbool new !true !here]];
-      end select;
-      statement := [@moveeachStatement new !here !sourceItem !sourceContainer !destination !condition];
-    end select;
+        condition = @boolNode.new {!here !@lbool.new {!true !here}}
+      end
+      statement = @moveeachStatement.new {!here !sourceItem !sourceContainer !destination !condition}
+    end
   or
-    <full_identifier> ?@lstringlist sourceContainer;
-    $to$;
-    <move_destination> ?@migrationDestination destination;
-    statement := [@moveStatement new !here !sourceContainer !destination];
-  end select;
-  $;$;
-end rule;
+    <full_identifier> ?@lstringlist sourceContainer
+    $to$
+    <move_destination> ?@migrationDestination destination
+    statement = @moveStatement.new {!here !sourceContainer !destination}
+  end
+  $;$
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <move_destination> !@migrationDestination destination:
+rule <move_destination> !@migrationDestination destination{
   select
-    $[$;
-    @lstring finalState := emptylstring[];
+    $[$
+    @lstring finalState = emptylstring()
     select
-      $identifier$ ?finalState;
-    or end select;
-    $]$;
-    destination := [@stateDestination new !here !finalState];
+      $identifier$ ?finalState
+    or end
+    $]$
+    destination = @stateDestination.new {!here !finalState}
   or
-    <full_identifier> ?@lstringlist identifier;
-    @lbool position;
+    <full_identifier> ?@lstringlist identifier
+    @lbool position
     select
-      $front$; position := [@lbool new !true !here];
+      $front$ position = @lbool.new {!true !here}
     or
-      $back$; position := [@lbool new !false !here];
+      $back$ position = @lbool.new {!false !here}
     or
-      position := [@lbool new !false !here];
-    end select;
-    destination := [@containerDestination new !here !identifier !position];
-  end select;
-end rule;
+      position = @lbool.new {!false !here}
+    end
+    destination = @containerDestination.new {!here !identifier !position}
+  end
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement:
-  $if$; <condition> ?@expression cond;
-  <statement_list> ?@statementList trueStatements;
-  @statementList falseStatements [emptyList];
+rule <statement> !@statement statement{
+  $if$ <condition> ?@expression cond
+  <statement_list> ?@statementList trueStatements
+  @statementList falseStatements = .emptyList
   select
-    $else$;
-    <statement_list> ?falseStatements;
-  or end select;
-  statement := [@ifStatement new !here !cond !trueStatements !falseStatements];
-end rule;
+    $else$
+    <statement_list> ?falseStatements
+  or end
+  statement = @ifStatement.new {!here !cond !trueStatements !falseStatements}
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement:
-  $start$;
-  @bool periodic := false;
-  select $periodic$; periodic := true; or end select;
-  <full_identifier> ?@lstringlist timer;
-  @lstringlist methodName [emptyList];
-  select $with$; <full_identifier> ?methodName; or end select;
-  $for$;
-  <expression> ?@expression delay;
-  $;$;
-  statement := [@startStatement new !here !timer !delay !periodic !methodName];
-end rule;
+rule <statement> !@statement statement{
+  $start$
+  @bool periodic = false
+  select $periodic$ periodic = true or end
+  <full_identifier> ?@lstringlist timer
+  @lstringlist methodName = .emptyList
+  select $with$ <full_identifier> ?methodName or end
+  $for$
+  <expression> ?@expression delay
+  $;$
+  statement = @startStatement.new {!here !timer !delay !periodic !methodName}
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement:
-  $for$; $each$;
-  <iteration_list> ?@itemAndContainerList iteration;
-  <statement_list> ?@statementList statements;
-  statement := [@foreachStatement new !here !iteration !statements];
-end rule;
+rule <statement> !@statement statement{
+  $for$ $each$
+  <iteration_list> ?@itemAndContainerList iteration
+  <statement_list> ?@statementList statements
+  statement = @foreachStatement.new {!here !iteration !statements}
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <iteration_list> !@itemAndContainerList iteration:
-  iteration := [@itemAndContainerList emptyList];
+rule <iteration_list> !@itemAndContainerList iteration{
+  iteration = @itemAndContainerList.emptyList
   repeat
-    $identifier$ ?@lstring item;
-    $in$;
-    <full_identifier> ?@lstringlist container;
-    @expression where;
+    $identifier$ ?let @lstring item
+    $in$
+    <full_identifier> ?@lstringlist container
+    @expression where
     select
-      $where$;
-      <expression> ?where;
+      $where$
+      <expression> ?where
     or
-      where := [@boolNode new !here ![@lbool new !true !here]];
-    end select;
-    iteration += !item !container !where;
+      where = @boolNode.new {!here !@lbool.new {!true !here}}
+    end
+    iteration += !item !container !where
   while
-    $,$;
-  end repeat;
-end rule;
+    $,$
+  end
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement:
-  $call$;
-  <full_identifier> ?@lstringlist fullMethod;
-  $;$;
-  statement := [@methodStatement new !here !fullMethod];
-end rule;
+rule <statement> !@statement statement{
+  $call$
+  <full_identifier> ?@lstringlist fullMethod
+  $;$
+  statement = @methodStatement.new {!here !fullMethod}
+}
 
 #rule <type> !@exprType type:
 #  select
@@ -594,88 +598,87 @@ end rule;
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <full_identifier> !@lstringlist identifier:
-  identifier := [@lstringlist emptyList];
+rule <full_identifier> !@lstringlist identifier{
+  identifier = @lstringlist.emptyList
   repeat
-    @lstring ident;
-    $identifier$ ?ident;
-    identifier += !ident;
+    @lstring ident
+    $identifier$ ?ident
+    identifier += !ident
   while
-    $.$;
-  end repeat;
-end rule;
+    $.$
+  end
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <assignment> ?@lstringlist identifier !@statement statement:
+rule <assignment> ?@lstringlist identifier !@statement statement{
   select
-    $=$; @expression expr;
-    <expression> ?expr; statement := [@assignExpressionStatement new !here !identifier !expr];
+    $=$ @expression expr
+    <expression> ?expr statement = @assignExpressionStatement.new {!here !identifier !expr}
   or
-    $+=$; @expression expr;
-    <expression> ?expr; statement := [@assignAddStatement new !here !identifier !expr];
+    $+=$ @expression expr
+    <expression> ?expr statement = @assignAddStatement.new {!here !identifier !expr}
   or
-    $-=$; @expression expr;
-    <expression> ?expr; statement := [@assignSubStatement new !here !identifier !expr];
+    $-=$ @expression expr
+    <expression> ?expr statement = @assignSubStatement.new {!here !identifier !expr}
   or
-    $*=$; @expression expr;
-    <expression> ?expr; statement := [@assignMulStatement new !here !identifier !expr];
+    $*=$ @expression expr
+    <expression> ?expr statement = @assignMulStatement.new {!here !identifier !expr}
   or
-    $/=$; @expression expr;
-    <expression> ?expr; statement := [@assignDivStatement new !here !identifier !expr];
+    $/=$ @expression expr
+    <expression> ?expr statement = @assignDivStatement.new {!here !identifier !expr}
   or
-    $%=$; @expression expr;
-    <expression> ?expr; statement := [@assignRemainStatement new !here !identifier !expr];
+    $%=$ @expression expr
+    <expression> ?expr statement = @assignRemainStatement.new {!here !identifier !expr}
   or
-    $&=$; @expression expr;
-    <expression> ?expr; statement := [@assignAndStatement new !here !identifier !expr];
+    $&=$ @expression expr
+    <expression> ?expr statement = @assignAndStatement.new {!here !identifier !expr}
   or
-    $|=$; @expression expr;
-    <expression> ?expr; statement := [@assignOrStatement new !here !identifier !expr];
+    $|=$ @expression expr
+    <expression> ?expr statement = @assignOrStatement.new {!here !identifier !expr}
   or
-    $<<=$; @expression expr;
-    <expression> ?expr; statement := [@assignShiftLeftStatement new !here !identifier !expr];
+    $<<=$ @expression expr
+    <expression> ?expr statement = @assignShiftLeftStatement.new {!here !identifier !expr}
   or
-    $>>=$; @expression expr;
-    <expression> ?expr; statement := [@assignShiftRightStatement new !here !identifier !expr];
+    $>>=$ @expression expr
+    <expression> ?expr statement = @assignShiftRightStatement.new {!here !identifier !expr}
   or
-    $++$; statement := [@assignIncStatement new !here !identifier];
+    $++$ statement = @assignIncStatement.new {!here !identifier}
   or
-    $--$; statement := [@assignDecStatement new !here !identifier];
-  end select;
-end rule;
+    $--$ statement = @assignDecStatement.new {!here !identifier}
+  end
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <access_right> !@accessRight access:
-  $($;
-  $identifier$ ?@lstring accessLString;
-  @bool constant := false;
-  @bool read := false;
-  @bool write := false;
-  @string accessString := [accessLString string];
-  @uint i := 0;
-  loop [accessString length]:
-  while i < [accessString length] do
-    @char curCar := [accessString characterAtIndex !i];
+rule <access_right> !@accessRight access{
+  $($
+  $identifier$ ?let @lstring accessLString
+  @bool constant = false
+  @bool read = false
+  @bool write = false
+  @string accessString = [accessLString string]
+  @uint i = 0
+  loop (accessString.length)
+  while i < accessString.length do
+    @char curCar = [accessString characterAtIndex !i]
     if curCar == 'r' then
-      read := true;
+      read = true
     elsif curCar == 'w' then
-      write := true;
+      write = true
     elsif curCar == 'c' then
-      constant := true;
+      constant = true
     else
-      error here: "'".[curCar string]."' is not a valid access right";
-    end if;
-    i := i + 1;
-  end loop;
+      error here: " @curCar is not a valid access right": string
+    end
+    i = i + 1
+  end
   if write & constant then
-    error here: "'w' and 'c' are incompatible access rights";
-  end if;
-  $)$;
-  access := [@accessRight new ![accessLString location] !read !write !constant];
-end rule;
-
-end syntax ;
+    error here: "'w' and 'c' are incompatible access rights"
+  end
+  $)$
+  access = @accessRight.new {![accessLString location] !read !write !constant}
+}
+}
