@@ -1,260 +1,254 @@
-semantics sdml_types:
-
-import "utilities.gSemantics";
-
 abstract class @sdmlType {}
-class @sdmlNone extends @sdmlType {}
-class @sdmlBasicType extends @sdmlType {}
-class @sdmlInteger extends @sdmlBasicType {}
-class @sdmlUnsigned extends @sdmlBasicType {}
-class @sdmlBool extends @sdmlBasicType {}
-class @sdmlTimer extends @sdmlBasicType {}
+class @sdmlNone : @sdmlType {}
+class @sdmlBasicType : @sdmlType {}
+class @sdmlInteger : @sdmlBasicType {}
+class @sdmlUnsigned : @sdmlBasicType {}
+class @sdmlBool : @sdmlBasicType {}
+class @sdmlTimer : @sdmlBasicType {}
 
-class @sdmlCustom extends @sdmlBasicType { @lstring name; }
+class @sdmlCustom : @sdmlBasicType { @lstring name }
 
-class @sdmlTaskRef extends @sdmlCustom {}
-class @sdmlCpuRef extends @sdmlCustom {}
+class @sdmlTaskRef : @sdmlCustom {}
+class @sdmlCpuRef : @sdmlCustom {}
 
-class @sdmlTaskContainer extends @sdmlCustom {}
-class @sdmlCpuContainer extends @sdmlCustom {}
+class @sdmlTaskContainer : @sdmlCustom {}
+class @sdmlCpuContainer : @sdmlCustom {}
 
-class @sdmlCollection extends @sdmlCustom {}
-class @sdmlTaskCollectionContainer extends @sdmlCollection {}
-class @sdmlCpuCollectionContainer extends @sdmlCollection {}
+class @sdmlCollection : @sdmlCustom {}
+class @sdmlTaskCollectionContainer : @sdmlCollection {}
+class @sdmlCpuCollectionContainer : @sdmlCollection {}
 
 #---------------------------------------------------------------------------*
 # type comparison
 #
-reader @sdmlType isEqualTo
-  ??@sdmlType otherType
+getter @sdmlType isEqualTo
+  ?let @sdmlType otherType
   ->@bool result
-:
-  result := [selfcopy dynamicType] == [otherType dynamicType];
-end reader;
+{
+  result = [self dynamicType] == [otherType dynamicType]
+}
   
-override reader @sdmlTaskRef isEqualTo
-  ??@sdmlType otherType
+override getter @sdmlTaskRef isEqualTo
+  ?let @sdmlType otherType
   ->@bool result
-:
-  cast otherType:
-  when == @sdmlTaskRef t do result := name == [t name];
-  else result := false;
-  end cast;
-end reader;
+{
+  cast otherType
+  case == @sdmlTaskRef t : result = name == [t name]
+  else result = false
+  end 
+}
 
-override reader @sdmlCpuRef isEqualTo
-  ??@sdmlType otherType
+override getter @sdmlCpuRef isEqualTo
+  ?let @sdmlType otherType
   ->@bool result
-:
-  cast otherType:
-  when == @sdmlCpuRef c do result := name == [c name];
-  else result := false;
-  end cast;
-end reader;
+{
+  cast otherType
+  case == @sdmlCpuRef c : result = name == [c name]
+  else result = false
+  end 
+}
 
-override reader @sdmlTaskCollectionContainer isEqualTo
-  ??@sdmlType otherType
+override getter @sdmlTaskCollectionContainer isEqualTo
+  ?let @sdmlType otherType
   ->@bool result
-:
-  cast otherType:
-  when == @sdmlTaskCollectionContainer t do result := name == [t name];
-  else result := false;
-  end cast;
-end reader;
+{
+  cast otherType
+  case == @sdmlTaskCollectionContainer t : result = name == [t name]
+  else result = false
+  end
+}
 
-override reader @sdmlCpuCollectionContainer isEqualTo
-  ??@sdmlType otherType
+override getter @sdmlCpuCollectionContainer isEqualTo
+  ?let @sdmlType otherType
   ->@bool result
-:
-  cast otherType:
-  when == @sdmlCpuCollectionContainer c do result := name == [c name];
-  else result := false;
-  end cast;
-end reader;
+{
+  cast otherType
+  case == @sdmlCpuCollectionContainer c : result = name == [c name]
+  else result = false
+  end
+}
 
 #---------------------------------------------------------------------------*
 # type containment
 #
-reader @sdmlType mayContain
-  ??@sdmlType otherType
+getter @sdmlType mayContain
+  ?let @sdmlType otherType
   ->@bool result
-:
-  result := [selfcopy dynamicType] == [otherType dynamicType];
-end reader;
+{
+  result = [selfcopy dynamicType] == [otherType dynamicType]
+}
   
-override reader @sdmlTaskContainer mayContain
-  ??@sdmlType otherType
+override getter @sdmlTaskContainer mayContain
+  ?let @sdmlType otherType
   ->@bool result
-:
-  cast otherType:
-  when == @sdmlTaskRef t do result := name == [t name];
-  else result := false;
-  end cast;
-end reader;
+{
+  cast otherType
+  case == @sdmlTaskRef t : result = name == [t name]
+  else result = false
+  end 
+}
 
-override reader @sdmlCpuContainer mayContain
-  ??@sdmlType otherType
+override getter @sdmlCpuContainer mayContain
+  ?let @sdmlType otherType
   ->@bool result
-:
-  cast otherType:
-  when == @sdmlCpuRef c do result := name == [c name];
-  else result := false;
-  end cast;
-end reader;
+{
+  cast otherType
+  case == @sdmlCpuRef c : result = name == [c name]
+  else result = false
+  end
+}
 
-override reader @sdmlTaskCollectionContainer mayContain
-  ??@sdmlType otherType
+override getter @sdmlTaskCollectionContainer mayContain
+  ?let @sdmlType otherType
   ->@bool result
-:
-  cast otherType:
-  when == @sdmlTaskRef t do result := name == [t name];
-  else result := false;
-  end cast;
-end reader;
+{
+  cast otherType
+  case == @sdmlTaskRef t : result = name == [t name]
+  else result = false
+  end 
+}
 
-override reader @sdmlCpuCollectionContainer mayContain
-  ??@sdmlType otherType
+override getter @sdmlCpuCollectionContainer mayContain
+  ?let @sdmlType otherType
   ->@bool result
-:
-  cast otherType:
-  when == @sdmlCpuRef c do result := name == [c name];
-  else result := false;
-  end cast;
-end reader;
+{
+  cast otherType
+  case == @sdmlCpuRef c : result = name == [c name]
+  else result = false
+  end 
+}
 
 
 #---------------------------------------------------------------------------*
 # type information about ordering
 #
-reader @sdmlType isOrdered
+getter @sdmlType isOrdered
   ->@bool result
-:
-  result := false;
-end reader;
+{
+  result = false
+}
 
-override reader @sdmlInteger isOrdered
+override getter @sdmlInteger isOrdered
   ->@bool result
-:
-  result := true;
-end reader;
+{
+  result = true
+}
 
-override reader @sdmlUnsigned isOrdered
+override getter @sdmlUnsigned isOrdered
   ->@bool result
-:
-  result := true;
-end reader;
+{
+  result = true
+}
 
 
 
 #---------------------------------------------------------------------------*
 # textual typeName
 #
-abstract reader @sdmlType typeName
-  ->@string result;
+abstract getter @sdmlType typeName
+  ->@string
   
-override reader @sdmlNone typeName
+override getter @sdmlNone typeName
   ->@string result
-:
-  result := "";
-end reader;
+{
+  result = ""
+}
 
-override reader @sdmlBasicType typeName
+override getter @sdmlBasicType typeName
   ->@string result
-:
-  error here: "@sdmlBasicType has no type name" :result;
-end reader;
+{
+  error here: "@sdmlBasicType has no type name" :result
+}
 
-override reader @sdmlCustom typeName
+override getter @sdmlCustom typeName
   ->@string result
-:
-  result := [name string];
-end reader;
+{
+  result = [name string]
+}
 
-override reader @sdmlInteger typeName
+override getter @sdmlInteger typeName
   ->@string result
-:
-  result := "int";
-end reader;
+{
+  result = "int"
+}
 
-override reader @sdmlUnsigned typeName
+override getter @sdmlUnsigned typeName
   ->@string result
-:
-  result := "unsigned";
-end reader;
+{
+  result = "unsigned"
+}
 
-override reader @sdmlBool typeName
+override getter @sdmlBool typeName
   ->@string result
-:
-  result := "bool";
-end reader;
+{
+  result = "bool"
+}
 
-override reader @sdmlTimer typeName
+override getter @sdmlTimer typeName
   ->@string result
-:
-  result := "timer";
-end reader;
+{
+  result = "timer"
+}
 
 #---------------------------------------------------------------------------*
 # textual lTypeName
 #
-abstract reader @sdmlType lTypeName
-  ->@lstring result;
+abstract getter @sdmlType lTypeName
+  ->@lstring
   
-override reader @sdmlNone lTypeName
+override getter @sdmlNone lTypeName
   ->@lstring result
-:
-  result := emptylstring[];
-end reader;
+{
+  result = emptylstring()
+}
 
-override reader @sdmlBasicType lTypeName
+override getter @sdmlBasicType lTypeName
   ->@lstring result
-:
-  error here: "@sdmlBasicType has no type name" :result;
-end reader;
+{
+  error here: "@sdmlBasicType has no type name" :result
+}
 
-override reader @sdmlCustom lTypeName
+override getter @sdmlCustom lTypeName
   ->@lstring result
-:
-  result := name;
-end reader;
+{
+  result = name
+}
 
-override reader @sdmlInteger lTypeName
+override getter @sdmlInteger lTypeName
   ->@lstring result
-:
-  result := [@lstring new !"int" !here];
-end reader;
+{
+  result = @lstring.new { !"int" !here }
+}
 
-override reader @sdmlUnsigned lTypeName
+override getter @sdmlUnsigned lTypeName
   ->@lstring result
-:
-  result := [@lstring new !"unsigned" !here];
-end reader;
+{
+  result = @lstring.new { !"unsigned" !here }
+}
 
-override reader @sdmlBool lTypeName
+override getter @sdmlBool lTypeName
   ->@lstring result
-:
-  result := [@lstring new !"bool" !here];
-end reader;
+{
+  result = @lstring.new { !"bool" !here }
+}
 
-override reader @sdmlTimer lTypeName
+override getter @sdmlTimer lTypeName
   ->@lstring result
-:
-  result := [@lstring new !"timer" !here];
-end reader;
+{
+  result = @lstring.new { !"timer" !here }
+}
 
 #---------------------------------------------------------------------------*
-# isCollection reader
+# isCollection getter
 #
-reader @sdmlType isCollection
+getter @sdmlType isCollection
   ->@bool result
-:
-  result := false;
-end reader;
+{
+  result = false
+}
 
-override reader @sdmlCollection isCollection
+override getter @sdmlCollection isCollection
   ->@bool result
-:
-  result := true;
-end reader;
-
-end semantics;
+{
+  result = true
+}

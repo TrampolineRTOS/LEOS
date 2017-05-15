@@ -1,33 +1,25 @@
-program sdml_program "version 1.0.2":
-import "sdml_semantics.gSemantics";
-import "sdml_verification.gSemantics";
-import "sdml_grammar.gGrammar";
-import "template_invocation.gSemantics";
-import "template_routines.gSemantics";
-import "config_generation.gSemantics";
-
 #--- Prologue routine
 before {
 }
 
 #--- 'when' clauses
-when . "sdml"
-message "a source text file with the .sdml extension"
-??@lstring inSourceFile {
-  @os os;
-  grammar sdml_grammar in inSourceFile ?os;
+case . "leos"
+message "a source text file with the .leos extension" ?sourceFilePath:@lstring inSourceFile
+{
+  @os os
+  grammar leos_grammar in inSourceFile ?os
 
-  os := [os verify];
+  os = [os verify]
   
   if not [option sdml_options.dryrun value] then
-    @TfieldMap configuration := [os configuration];
+#    @TfieldMap configuration := [os configuration];
     
   #  log configuration; 
     
-    addStringValue !?configuration !lstringwith[!"BACKEND"] ![option sdml_options.backend value];
+#    addStringValue !?configuration !lstringwith[!"BACKEND"] ![option sdml_options.backend value];
   
-    @string result := computeTemplate[!"" !configuration !"root"];
-  end if;
+#    @string result := computeTemplate[!"" !configuration !"root"];
+  end
 }
 
 #--- Epilogue routine
@@ -36,4 +28,3 @@ after {
 
 #---
 
-end program ;

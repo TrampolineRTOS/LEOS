@@ -28,7 +28,7 @@ map @typeDeclarationMap {
 }
 
 map @varDeclarationMap {
-  @varDeclaration var;
+  @varDeclaration variable;
   insert putData error message "Data '%K' is already declared in %L";
   search getData error message "Data '%K' is not declared";
   insert putField error message "Field '%K' is already declared in %L";
@@ -129,7 +129,7 @@ class @funcDeclaration {
 }
 
 map @funcDeclarationMap {
-  @funcDeclaration func;
+  @funcDeclaration function;
   insert putFunction error message "Function '%K' is already declared in %L";
   search getFunction error message "Function '%K' is not declared";
 }

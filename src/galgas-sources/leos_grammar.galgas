@@ -1,7 +1,7 @@
-grammar sdml_grammar "LL1":
-with "sdml_syntax.gSyntax" ;
-with "expression_syntax.gSyntax";
+grammar leos_grammar "LL1"
+{
+  syntax leos_syntax 
+  syntax expression_syntax
 
-root <start_symbol> !@os os;
-
-end grammar ;
+  <start_symbol> !@os os
+}

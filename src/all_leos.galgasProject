@@ -24,7 +24,7 @@ project (0:0:1) -> "leos"
   "galgas-sources/expression_semantics.galgas"
   "galgas-sources/leos_types.galgas"
   "galgas-sources/utilities.galgas"
-  "galgas-sources/config_generation.galgas"
+#  "galgas-sources/config_generation.galgas"
   "galgas-sources/leos_grammar.galgas"
   
   "galgas-sources/leos_cocoa.galgas"

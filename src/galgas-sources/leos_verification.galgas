@@ -1,150 +1,147 @@
-semantics sdml_verification:
-  import "sdml_semantics.gSemantics";
-  import "backend.gSemantics";
-
 #---------------------------------------------------------------------------*
 # verify the root object
 # 
-reader @os verify -> @os result:
+getter @os verify -> @os result
+{
 
-  @typeDeclarationMap types [emptyMap];
-  foreach typeDeclarations do
-    @typeDeclaration verifiedType := [type verify !selfcopy];
-    [!?types putType !lkey !verifiedType];
-  end foreach;
+  @typeDeclarationMap types = .emptyMap
+  for () in typeDeclarations do
+    @typeDeclaration verifiedType = [type verify !self]
+    [!?types putType !lkey !verifiedType]
+  end 
+    
+  @varDeclarationMap vars = .emptyMap
+  for () in varDeclarations do
+    @varDeclaration verifiedVar = [variable verify !self]
+    [!?vars putData !lkey !verifiedVar]
+  end
   
-  @varDeclarationMap vars [emptyMap];
-  foreach varDeclarations do
-    @varDeclaration verifiedVar := [var verify !selfcopy];
-    [!?vars putData !lkey !verifiedVar];
-  end foreach;
+  @funcDeclarationMap funcs = .emptyMap
+  for () in funcDeclarations do
+    @funcDeclaration verifiedFunc = [function verify !self]
+    [!?funcs putFunction !lkey !verifiedFunc]
+  end 
+    
+  @schedulerDeclarationMap schedulers = .emptyMap
+  for () in schedulerDeclarations do
+    @schedulerDeclaration verifiedScheduler = [scheduler verify !self]
+    [!?schedulers putScheduler !lkey !verifiedScheduler]
+  end
   
-  @funcDeclarationMap funcs [emptyMap];
-  foreach funcDeclarations do
-    @funcDeclaration verifiedFunc := [func verify !selfcopy];
-    [!?funcs putFunction !lkey !verifiedFunc];
-  end foreach;
+  @transDeclarationMap trans = .emptyMap
+  for () in transDeclarations do
+    @transDeclaration verifiedTrans = [transition verify !self]
+    [!?trans putTrans !lkey !verifiedTrans]
+  end
   
-  @schedulerDeclarationMap schedulers [emptyMap];
-  foreach schedulerDeclarations do
-    @schedulerDeclaration verifiedScheduler := [scheduler verify !selfcopy];
-    [!?schedulers putScheduler !lkey !verifiedScheduler];
-  end foreach;
-  
-  @transDeclarationMap trans [emptyMap];
-  foreach transDeclarations do
-    @transDeclaration verifiedTrans := [transition verify !selfcopy];
-    [!?trans putTrans !lkey !verifiedTrans];
-  end foreach;
-  
-  @backendDeclarationMap backends [emptyMap];
-  foreach backendDeclarations do
-    @backendDeclaration verifiedBackend := [backend verify !selfcopy];
-    [!?backends putBackend !lkey !verifiedBackend];
-  end foreach;
+  @backendDeclarationMap backends = .emptyMap
+  for () in backendDeclarations do
+    @backendDeclaration verifiedBackend = [backend verify !self]
+    [!?backends putBackend !lkey !verifiedBackend]
+  end
 
-  result := [@os new !name !types !vars !funcs !schedulers !trans !backends];
-end reader;
+  result = @os.new { !name !types !vars !funcs !schedulers !trans !backends }
+}
 
-abstract reader @typeDeclaration verify
-  ??@os os
-  ->@typeDeclaration result;
+abstract getter @typeDeclaration verify
+  ?let @os os
+  ->@typeDeclaration
 #---------------------------------------------------------------------------*
 # verify the task declarations:
 # - each task declaration should have an existing ancestor
 # - each task state should not be redeclared
 # - each task field should not be redeclared
 #
-override reader @taskDeclaration verify
-  ??@os os
+override getter @taskDeclaration verify
+  ?let @os os
   ->@typeDeclaration result
-:
+{
   # check the father exists
   if [[os typeDeclarations] hasLKey !father] then
-    @typeDeclaration theFather;
-    [[os typeDeclarations] getTaskType !father ?theFather];
-    cast theFather:
-    when == @taskDeclaration fatherTask do
+    @typeDeclaration theFather
+    [[os typeDeclarations] getTaskType !father ?theFather]
+    cast theFather
+    case == @taskDeclaration fatherTask :
       # check the states are not redefined compared to the ancestor
-      foreach states do
+      for () in states do
         if [[fatherTask states] hasKey ![lkey string]] then
-          error lkey: "state '".lkey."' of task ".name;
-          error [[fatherTask states] locationForKey ![lkey string]]: "conflicts with parent task state";
-        end if;
-      end foreach;
+          error lkey: "state '" + lkey + "' of task " + name
+          error [[fatherTask states] locationForKey ![lkey string]]: "conflicts with parent task state"
+        end
+      end
       # check the fields are not redefined compared to the ancestor
-      foreach fields do
+      for () in fields do
         if [[fatherTask fields] hasKey ![lkey string]] then
-          error lkey: "field '".lkey."' of task ".name;
-          error [[fatherTask fields] locationForKey ![lkey string]]: "conflicts with parent task field";
-        end if;
-      end foreach;
+          error lkey: "field '" + lkey + "' of task " + name
+          error [[fatherTask fields] locationForKey ![lkey string]]: "conflicts with parent task field"
+        end
+      end 
     else
       error father: "Father is not declared";
-    end cast;
-  end if;
-  result := selfcopy;
-end reader;
+    end
+  end
+  result = self
+}
 
 #---------------------------------------------------------------------------*
 # verify the cpu declaration
 # - each cpu state must have a corresponding task state
 # - empty must exist in 1 ex
 #
-override reader @cpuDeclaration verify
-  ??@os os
+override getter @cpuDeclaration verify
+  ?let @os os
   ->@typeDeclaration result
-:
+{
   # get the task
-  @typeDeclaration refobj;
-  [[os typeDeclarations] getTaskType !task ?refobj];
-  cast refobj:
-  when == @taskDeclaration reftask do
+  @typeDeclaration refobj
+  [[os typeDeclarations] getTaskType !task ?refobj]
+  cast refobj
+  case == @taskDeclaration reftask :
     # verify each task state exists
     # iterate through the states of the CPU
-    foreach states do
-      cast accept:
-      when == @taskAcceptStatement tas do
-        [[reftask allStates !os] getState ![tas taskState]];
-      else end cast;
-    end foreach;
+    for () in states do
+      cast accept
+      case == @taskAcceptStatement tas :
+        [[reftask allStates !os] getState ![tas taskState]]
+      else end
+    end
   else
-    error task: [task string]." is not a task type";
-  end cast;
-  @lstringmap taskStates [emptyMap];
-  @lstring lastEmpty := emptylstring[];
-  foreach states do    
-    cast accept:
-    when == @taskAcceptStatement tas do
-      [!?taskStates putState ![tas taskState]];
-    when == @emptyAcceptStatement eas do
+    error task: [task string] + " is not a task type"
+  end
+  @lstringmap taskStates = .emptyMap
+  @lstring lastEmpty = emptylstring()
+  for () in states do    
+    cast accept
+    case == @taskAcceptStatement tas :
+      [!?taskStates putState ![tas taskState]]
+    case == @emptyAcceptStatement eas :
       if [lastEmpty string] != "" then
-        error [eas cpuState]: "empty redefined";
-        error lastEmpty: "was defined here";
+        error [eas cpuState]: "empty redefined"
+        error lastEmpty: "was defined here"
       else
-        lastEmpty := [eas cpuState];
-      end if;
-    else end cast;
-  end foreach;
-  result := selfcopy;
-end reader;
+        lastEmpty = [eas cpuState]
+      end
+    else end
+  end
+  result = self
+}
 
 #---------------------------------------------------------------------------*
 # vars verification
 #
-abstract reader @varDeclaration verify
-  ??@os os
-  ->@varDeclaration result;
+abstract getter @varDeclaration verify
+  ?let@os os
+  ->@varDeclaration
 
 #---------------------------------------------------------------------------*
 # verify a built in var, nothing to do in fact
 #
-override reader @builtInVar verify
-  ??@os unused os
+override getter @builtInVar verify
+  ?let @os unused os
   ->@varDeclaration result
-:
-  result := selfcopy;
-end reader;
+{
+  result = self
+}
 
 #---------------------------------------------------------------------------*
 # verify a custom var
@@ -153,249 +150,293 @@ end reader;
 # methods to check the container states conform to the declared states
 #
 abstract method @typeDeclaration checkStates
-  ??@os os
-  ??@lstringmap containerStates;
+  ?let @os os
+  ?let @lstringmap containerStates;
 
 override method @taskDeclaration checkStates
-  ??@os os
-  ??@lstringmap containerStates
-:
-  @lstringmap all := [selfcopy allStates !os];
-  foreach containerStates do
+  ?let @os os
+  ?let @lstringmap containerStates
+{
+  @lstringmap all = [self allStates !os]
+  for () in containerStates do
     if not [all hasLKey !lkey] then
-      error lkey: [lkey string]." is not declared for task type ".name;
-    end if;
-  end foreach;
-end method;
+      error lkey: [lkey string] + " is not declared for task type " + name
+    end
+  end
+}
 
 override method @cpuDeclaration checkStates
-  ??@os unused os
-  ??@lstringmap containerStates
-:
-  foreach containerStates do
+  ?let @os unused os
+  ?let @lstringmap containerStates
+{
+  for () in containerStates do
     if not [states hasLKey !lkey] then
-      error lkey: [lkey string]." is not declared for cpu type ".name;
-    end if;
-  end foreach;
-end method;
-
+      error lkey: [lkey string] + " is not declared for cpu type " + name
+    end
+  end
+}
 #---------------------------------------------------------------------------*
 # methods to check the container ordering list
 # conforms to the declared fields
 #
-reader @orderingList sdmlOrderingList
-  ??@os os
-  ??@varDeclarationMap fields
+getter @orderingList sdmlOrderingList
+  ?let @os os
+  ?let @varDeclarationMap fields
   ->@sdmlOrderingList sdmlOrdering
-:
+{
   #
   # build a variable map made with fields of the item type
   #
-  @os osWithSortLocals := [@os new ![os name] ![os typeDeclarations] !fields ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
-  sdmlOrdering := [@sdmlOrderingList emptyList];
-  foreach selfcopy do
-    @sdmlExpression sdmlKey := [key sdmlExpression !osWithSortLocals];
+  @os osWithSortLocals = @os.new {
+    ![os name]
+    ![os typeDeclarations]
+    !fields
+    ![os funcDeclarations]
+    ![os schedulerDeclarations]
+    ![os transDeclarations]
+    ![os backendDeclarations]
+  }
+  sdmlOrdering = @sdmlOrderingList.emptyList
+  for () in self do
+    @sdmlExpression sdmlKey = [key sdmlExpression !osWithSortLocals]
     if not [[sdmlKey type] isOrdered] then
-      error [key loc]: "Sorting key is not ordered";
-    end if;
-    sdmlOrdering += !sdmlKey !up;
-  end foreach;
-end reader;
+      error [key loc]: "Sorting key is not ordered"
+    end
+    sdmlOrdering += !sdmlKey !up
+  end
+}
 
-
-
-override reader @containerVar verify
-  ??@os os
+override getter @containerVar verify
+  ?let @os os
   ->@varDeclaration result
-:
+{
   # look for the var type in the types
-  @typeDeclaration typeDeclaration;
-  [[os typeDeclarations] getType ![type lTypeName] ?typeDeclaration];
+  @typeDeclaration typeDeclaration
+  [[os typeDeclarations] getType ![type lTypeName] ?typeDeclaration]
   # check the states accepted by the container exists
-  [typeDeclaration checkStates !os !states];
+  [typeDeclaration checkStates !os !states]
   # check the ordering list conforms to the declared fields
-  @sdmlOrderingList sdmlOrdering := [ordering sdmlOrderingList !os ![typeDeclaration allFields !os]];
-  result := [@sdmlContainerVar new !name !type !access !states !sdmlOrdering];
-end reader;
+  @sdmlOrderingList sdmlOrdering = [ordering sdmlOrderingList !os ![typeDeclaration allFields !os]]
+  result = @sdmlContainerVar.new { !name !type !access !states !sdmlOrdering }
+}
 
 #---------------------------------------------------------------------------*
 # verify a method
 # verify each statement
 #
-reader @methodDeclaration verify
-  ??@os os
-  ??@lstring parent
+getter @methodDeclaration verify
+  ?let @os os
+  ?let @lstring parent
   ->@methodDeclaration result
-:
+{
 #  message "**** Parent = ".parent."\n";
-  @statementList verifiedStatements [emptyList];
-  @varDeclarationMap localMap := [@varDeclarationMap mapWithMapToOverride ![os varDeclarations]];
-  foreach locals do
-    [!?localMap putData !lkey !var];
-  end foreach;
-  @os osWithLocals := [@os new ![os name] ![os typeDeclarations] !localMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
-  foreach statements do
-    verifiedStatements += ![statement sdmlStatement !osWithLocals !parent];
-  end foreach;
-  result := [@methodDeclaration new !name !locals !verifiedStatements];
-end reader;
+  @statementList verifiedStatements = .emptyList
+  @varDeclarationMap localMap = @varDeclarationMap.mapWithMapToOverride { ![os varDeclarations] }
+  for () in locals do
+    [!?localMap putData !lkey !variable];
+  end
+  @os osWithLocals = @os.new { 
+    ![os name]
+    ![os typeDeclarations]
+    !localMap
+    ![os funcDeclarations]
+    ![os schedulerDeclarations]
+    ![os transDeclarations]
+    ![os backendDeclarations]
+  }
+  for () in statements do
+    verifiedStatements += ![statement sdmlStatement !osWithLocals !parent]
+  end
+  result = @methodDeclaration.new { !name !locals !verifiedStatements }
+}
 
 #---------------------------------------------------------------------------*
 # verify a scheduler
 #
-reader @schedulerDeclaration verify
-  ??@os os
+getter @schedulerDeclaration verify
+  ?let @os os
   ->@schedulerDeclaration result
-:
-  @varDeclarationMap decls := [@varDeclarationMap mapWithMapToOverride ![os varDeclarations]];
-  foreach locals do
-    @varDeclaration dec := [var verify !os];
-    [!?decls putData !lkey !dec];
-  end foreach;
+{
+  @varDeclarationMap decls = @varDeclarationMap.mapWithMapToOverride { ![os varDeclarations] }
+  for () in locals do
+    @varDeclaration dec = [variable verify !os]
+    [!?decls putData !lkey !dec]
+  end
   
-  @os osWithLocals := [@os new ![os name] ![os typeDeclarations] !decls ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
-  @methodDeclarationMap verifMethods [emptyMap];
-  foreach methods do
-    @methodDeclaration verifiedMethod := [methodDeclaration verify !osWithLocals !name];
-    [!?verifMethods putMethod !lkey !verifiedMethod];
-  end foreach;
-  result := [@schedulerDeclaration new !name !task !cpu !decls !verifMethods];
-end reader;
+  @os osWithLocals = @os.new { 
+    ![os name]
+    ![os typeDeclarations]
+    !decls
+    ![os funcDeclarations]
+    ![os schedulerDeclarations]
+    ![os transDeclarations]
+    ![os backendDeclarations]
+  }
+  @methodDeclarationMap verifMethods = .emptyMap
+  for () in methods do
+    @methodDeclaration verifiedMethod = [methodDeclaration verify !osWithLocals !name]
+    [!?verifMethods putMethod !lkey !verifiedMethod]
+  end
+  result = @schedulerDeclaration.new { !name !task !cpu !decls !verifMethods }
+}
 
 #---------------------------------------------------------------------------*
 # verify a transition set
 #
-method @taskDeclaration hasState ??@lstring inState ??@os os:
-  @lstringmap allStates := [selfcopy allStates !os];
+method @taskDeclaration hasState ?let @lstring inState ?let @os os
+{
+  @lstringmap allStates = [self allStates !os]
   if not [allStates hasLKey !inState] then
-    error inState: "State ".inState." does not exist";
-  end if;
-end method;
+    error inState: "State " + inState + " does not exist"
+  end
+}
 
-reader @transDeclaration verify
-  ??@os os
+getter @transDeclaration verify
+  ?let @os os
   ->@transDeclaration result
-:
+{
   # check the taskType is ok
-  @typeDeclaration taskTypeDeclaration;
-  [[os typeDeclarations] getTaskType !taskType ?taskTypeDeclaration];
-  cast taskTypeDeclaration:
-  when == @taskDeclaration td do
-    @varDeclaration task := [@refVar new !taskName ![@sdmlCustom new !taskType] !rwAccess[]];
-    @varDeclarationMap localMap := [@varDeclarationMap mapWithMapToOverride ![os varDeclarations]];
-    [!?localMap putData !taskName !task];
-    @transitionList verifiedTransitions [emptyList];
-    @os osWithLocals := [@os new ![os name] ![os typeDeclarations] !localMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
-    foreach transitions do
+  @typeDeclaration taskTypeDeclaration
+  [[os typeDeclarations] getTaskType !taskType ?taskTypeDeclaration]
+  cast taskTypeDeclaration
+  case == @taskDeclaration td :
+    @varDeclaration task = @refVar.new { !taskName !@sdmlCustom.new { !taskType } !rwAccess() }
+    @varDeclarationMap localMap = @varDeclarationMap.mapWithMapToOverride { ![os varDeclarations] }
+    [!?localMap putData !taskName !task]
+    @transitionList verifiedTransitions = .emptyList
+    @os osWithLocals = @os.new {
+      ![os name]
+      ![os typeDeclarations]
+      !localMap
+      ![os funcDeclarations]
+      ![os schedulerDeclarations]
+      ![os transDeclarations]
+      ![os backendDeclarations]
+    }
+    for () in transitions do
       # check the states exist
-      [td hasState !sourceState !osWithLocals];
-      [td hasState !destinationState !osWithLocals];
-      @statementList verifiedList [emptyList];
-      foreach statements do
-        @sdmlStatement verifiedStatement := [statement sdmlStatement !osWithLocals !emptylstring[]];
-        verifiedList += !verifiedStatement;
-      end foreach;
-      verifiedTransitions += !sourceState !destinationState !verifiedList;
-    end foreach;
-    result := [@transDeclaration new !name !taskType !taskName !verifiedTransitions];
+      [td hasState !sourceState !osWithLocals]
+      [td hasState !destinationState !osWithLocals]
+      @statementList verifiedList = .emptyList
+      for () in statements do
+        @sdmlStatement verifiedStatement = [statement sdmlStatement !osWithLocals !emptylstring()]
+        verifiedList += !verifiedStatement
+      end
+      verifiedTransitions += !sourceState !destinationState !verifiedList
+    end
+    result = @transDeclaration.new { !name !taskType !taskName !verifiedTransitions }
   else
-    error taskType: "Task type expected": result;
-  end cast;
-end reader;
+    error taskType: "Task type expected": result
+  end
+}
 
 #---------------------------------------------------------------------------*
 # verify a function declaration
 #
-reader @funcDeclaration verify
-  ??@os os
+getter @funcDeclaration verify
+  ?let @os os
   ->@funcDeclaration result
-:
+{
   # build a variable map with the arguments, the local variables and the function name
-  @varDeclarationMap localVariables := locals;
-  foreach arguments do
-    @varDeclaration arg := [@builtInVar new !name !type !rwAccess[]];
-    [!?localVariables putData !name !arg];
-  end foreach;
+  @varDeclarationMap localVariables = locals
+  for () in arguments do
+    @varDeclaration arg = @builtInVar.new { !name !type !rwAccess() }
+    [!?localVariables putData !name !arg]
+  end
   
   # result variable of the function has the name of the function
-  [!?localVariables putData !name ![@builtInVar new !name !type !rwAccess[]]];
+  [!?localVariables putData !name !@builtInVar.new { !name !type !rwAccess() } ]
   
   # verify the statements of the function
-  @os osWithLocals := [@os new ![os name] ![os typeDeclarations] !localVariables ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
-  @statementList verifiedStatements [emptyList];
-  foreach statements do
-    @sdmlStatement verifiedStatement := [statement sdmlStatement !osWithLocals !emptylstring[]];
-  end foreach;
+  @os osWithLocals = @os.new {
+    ![os name]
+    ![os typeDeclarations]
+    !localVariables
+    ![os funcDeclarations]
+    ![os schedulerDeclarations]
+    ![os transDeclarations]
+    ![os backendDeclarations]
+  }
+  @statementList verifiedStatements = .emptyList
+  for () in statements do
+    @sdmlStatement verifiedStatement = [statement sdmlStatement !osWithLocals !emptylstring()]
+  end 
   
-  result := [@funcDeclaration new !name !type !arguments !locals !verifiedStatements];
-end reader;
+  result = @funcDeclaration.new { !name !type !arguments !locals !verifiedStatements }
+}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-reader @backendDeclaration verify
-  ??@os os
+getter @backendDeclaration verify
+  ?let @os os
   ->@backendDeclaration result
-:
-  @varDeclarationMap localVariables := [@varDeclarationMap mapWithMapToOverride ![os varDeclarations]];
-  foreach arguments do
+{
+  @varDeclarationMap localVariables = @varDeclarationMap.mapWithMapToOverride { ![os varDeclarations] }
+  for () in arguments do
 #    log type;
-    @varDeclaration arg := [type create !name ![os typeDeclarations]];
-    [!?localVariables putData !name !arg];
-  end foreach;
+    @varDeclaration arg = [type create !name ![os typeDeclarations]]
+    [!?localVariables putData !name !arg]
+  end
   
-  @keyedStatementMap verifiedKeyedStatements [emptyMap];
-  @os osWithLocals := [@os new ![os name] ![os typeDeclarations] !localVariables ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]];
-  foreach keyedStatements do
-    @statementList verifiedStatements [emptyList];
-    foreach statements do
-      @statement verifiedStatement := [statement sdmlStatement !osWithLocals !emptylstring[]];
-      verifiedStatements += !verifiedStatement;
-    end foreach;
-    [!?verifiedKeyedStatements putStatements !lkey !verifiedStatements];
-  end foreach;
+  @keyedStatementMap verifiedKeyedStatements = .emptyMap
+  @os osWithLocals = @os.new { 
+    ![os name]
+    ![os typeDeclarations]
+    !localVariables
+    ![os funcDeclarations]
+    ![os schedulerDeclarations]
+    ![os transDeclarations]
+    ![os backendDeclarations]
+  }
+  for () in keyedStatements do
+    @statementList verifiedStatements = .emptyList
+    for () in statements do
+      @statement verifiedStatement = [statement sdmlStatement !osWithLocals !emptylstring()]
+      verifiedStatements += !verifiedStatement
+    end
+    [!?verifiedKeyedStatements putStatements !lkey !verifiedStatements]
+  end
   
-  foreach keyedIdentifiers do
-    @sdmlType identType := [[osWithLocals varDeclarations] identifierType !identifier !osWithLocals];
-  end foreach;
+  for () in keyedIdentifiers do
+    @sdmlType identType = [[osWithLocals varDeclarations] identifierType !identifier !osWithLocals]
+  end
   
-  result := [@backendDeclaration new !name !arguments !verifiedKeyedStatements !keyedIdentifiers];
-end reader;
+  result = @backendDeclaration.new { !name !arguments !verifiedKeyedStatements !keyedIdentifiers }
+}
 
 #-----------------------------------------------------------------------------
 # Create a variable of the corresponding type
 #-----------------------------------------------------------------------------
-reader @sdmlType create
-  ??@lstring varName
-  ??@typeDeclarationMap unused types
-  ->@varDeclaration var
-:
-  error varName: "cannot create a variable of this type": var;
-end reader;
+getter @sdmlType create
+  ?let @lstring varName
+  ?let @typeDeclarationMap unused types
+  ->@varDeclaration variable
+{
+  error varName: "cannot create a variable of this type": variable;
+}
   
-override reader @sdmlBasicType create
-  ??@lstring varName
-  ??@typeDeclarationMap unused types
-  ->@varDeclaration var
-:
-  var := [@builtInVar new !varName !selfcopy !rwAccess[]];
-end reader;
+override getter @sdmlBasicType create
+  ?let @lstring varName
+  ?let @typeDeclarationMap unused types
+  ->@varDeclaration variable
+{
+  variable = @builtInVar.new { !varName !selfcopy !rwAccess() }
+}
 
-override reader @sdmlCustom create
-  ??@lstring varName
-  ??@typeDeclarationMap types
-  ->@varDeclaration var
-:
-  @typeDeclaration declaration;
-  [types getTaskType !name ?declaration];
-  cast declaration:
-  when == @taskDeclaration do
-    var := [@refVar new !varName ![@sdmlTaskRef new !name] !rwAccess[]];
-  when == @cpuDeclaration do
-    var := [@refVar new !varName ![@sdmlCpuRef new !name] !rwAccess[]];
+override getter @sdmlCustom create
+  ?let @lstring varName
+  ?let @typeDeclarationMap types
+  ->@varDeclaration variable
+{
+  @typeDeclaration declaration
+  [types getTaskType !name ?declaration]
+  cast declaration
+  case == @taskDeclaration :
+    variable = @refVar.new { !varName !@sdmlTaskRef.new { !name } !rwAccess() }
+  case == @cpuDeclaration :
+    variable = @refVar.new { !varName !@sdmlCpuRef.new { !name } !rwAccess() }
   else
-    error varName: "unexpected type":var;
-  end cast;
-end reader;
-
-end semantics;
+    error varName: "unexpected type":variable;
+  end
+}

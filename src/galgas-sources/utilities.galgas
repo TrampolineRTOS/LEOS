@@ -1,20 +1,20 @@
-semantics utilities:
 #-----------------------------------------------------------------------------
 # Utility functions
 #-----------------------------------------------------------------------------
-function emptylstring -> @lstring result:
-  result := [@lstring new !"" !here];
-end function;
+func emptylstring -> @lstring result
+{
+  result = @lstring.new { !"" !.here }
+}
 
-function lstringwith ??@string value -> @lstring result:
-  result := [@lstring new !value !here];
-end function;
+func lstringwith ?let @string value -> @lstring result
+{
+  result = @lstring.new { !value !.here }
+}
 
-reader @stringset stringlist ->@stringlist result:
-  result := [@stringlist emptyList];
-  foreach selfcopy (@string element) do
+getter @stringset stringlist ->@stringlist result
+{
+  result = .emptyList
+  for (@string element) in self do
     result += !element;
-  end foreach;
-end reader;
-
-end semantics;
+  end
+}
