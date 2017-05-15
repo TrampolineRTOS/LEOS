@@ -1,0 +1,3 @@
+[submodule "src/GTL"]
+	path = src/GTL
+	url = https://github.com/TrampolineRTOS/GTL
