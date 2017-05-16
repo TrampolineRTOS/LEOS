@@ -3,8 +3,8 @@ syntax leos_syntax (leos_lexique) {
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-#nonterminal <expression> !@expression expr
-#nonterminal <expression_list> !@expressionList expList
+rule <expression> !@expression expr
+rule <expression_list> !@expressionList expList
 
 #-----------------------------------------------------------------------------
 # 
@@ -94,8 +94,8 @@ rule <cpuType_declaration>
     else end 
   end
   [!?fields putData
-    !lstringwith !"running"
-    !@sdmlContainerVar.new {!lstringwith !"running"} !@sdmlTaskContainer.new {!taskName} !rwAccess() !acceptedStates !@sdmlOrderingList.emptyList
+    !lstringwith(!"running")
+    !@sdmlContainerVar.new {!lstringwith(!"running") !@sdmlTaskContainer.new {!taskName } !rwAccess() !acceptedStates !@sdmlOrderingList.emptyList }
   ]
   select
     ${$
@@ -180,16 +180,17 @@ rule <argument_list> !@argumentList arguments{
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <local_var_declaration> ?!@varDeclarationMap declarations{
+rule <local_var_declaration> ?!@varDeclarationMap declarations
+{
   select
-    $int$ $identifier$ ?let @lstring varName <access_right> ?@accessRight access
-    [!?declarations putData !varName !@builtInVar.new {!varName} !@sdmlInteger.new {!access}]
+    $int$ $identifier$ ?let @lstring varName <access_right> ?let @accessRight access
+    [!?declarations putData !varName !@builtInVar.new {!varName !@sdmlInteger.new !access } ]
   or
     $unsigned$ $identifier$ ?let @lstring varName <access_right> ?@accessRight access
-    [!?declarations putData !varName !@builtInVar.new {!varName} !@sdmlUnsigned.new {!access}]
+    [!?declarations putData !varName !@builtInVar.new {!varName !@sdmlUnsigned.new !access } ]
   or
     $bool$ $identifier$ ?let @lstring varName <access_right> ?@accessRight access
-    [!?declarations putData !varName !@builtInVar.new {!varName} !@sdmlBool.new {!access}]
+    [!?declarations putData !varName !@builtInVar.new {!varName !@sdmlBool.new !access } ]
   end
 }
 
@@ -231,7 +232,7 @@ rule <container_declaration> ?!@varDeclarationMap declarations{
     select
       $sorted$ $by$ <ordering_list> ?ordering
       if [type dynamicType] == `@sdmlCustom then
-        error here: "ordering is invalid for scalar containers"
+        error .here: "ordering is invalid for scalar containers"
       end
     or 
     end
@@ -321,7 +322,7 @@ rule <scheduler_declaration>
     <statement_list> ?@statementList statements
     [!?methods putMethod !methodName !@methodDeclaration.new {!methodName !methodLocals !statements}]
   while
-    $init$ @lstring methodName = @lstring.new {!"init" !here}
+    $init$ @lstring methodName = @lstring.new {!"init" !.here}
     <declaration_list> ?@varDeclarationMap methodLocals
     <statement_list> ?@statementList statements
     [!?methods putMethod !methodName !@methodDeclaration.new {!methodName !methodLocals !statements}]
@@ -364,7 +365,9 @@ rule <backend_declaration> ?!@backendDeclarationMap declarations{
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <condition> !@expression expr{
+rule <condition>
+  !@expression expr
+{
   $($
   <expression> ?expr
   $)$
@@ -426,7 +429,7 @@ rule <statement> !@statement statement{
   select
     @lstring funcName
     if [identifier length] > 1 then
-      error here: "function name expected": funcName
+      error .here: "function name expected": funcName
     else
       [identifier first ?funcName]
     end
@@ -434,7 +437,7 @@ rule <statement> !@statement statement{
     @expressionList expList = .emptyList
     select <expression_list> ?expList or end
     $)$ # function call
-    statement = @functionCallStatement.new {!here !funcName !expList}
+    statement = @functionCallStatement.new {!.here !funcName !expList}
   or
     <assignment> !identifier ?statement
   end
@@ -462,9 +465,9 @@ rule <statement> !@statement statement{
         $while$
         <expression> ?condition
       or
-        condition = @boolNode.new {!here !@lbool.new {!true !here}}
+        condition = @boolNode.new {!.here !@lbool.new {!true !.here}}
       end
-      statement = @moveeacheachStatement.new {!here !sourceItem !sourceContainer !destItem !destContainer !condition}
+      statement = @moveeacheachStatement.new {!.here !sourceItem !sourceContainer !destItem !destContainer !condition}
     or   
       <move_destination> ?@migrationDestination destination
       @expression condition
@@ -472,15 +475,15 @@ rule <statement> !@statement statement{
         $while$
         <expression> ?condition
       or
-        condition = @boolNode.new {!here !@lbool.new {!true !here}}
+        condition = @boolNode.new {!.here !@lbool.new {!true !.here}}
       end
-      statement = @moveeachStatement.new {!here !sourceItem !sourceContainer !destination !condition}
+      statement = @moveeachStatement.new {!.here !sourceItem !sourceContainer !destination !condition}
     end
   or
     <full_identifier> ?@lstringlist sourceContainer
     $to$
     <move_destination> ?@migrationDestination destination
-    statement = @moveStatement.new {!here !sourceContainer !destination}
+    statement = @moveStatement.new {!.here !sourceContainer !destination}
   end
   $;$
 }
@@ -496,18 +499,18 @@ rule <move_destination> !@migrationDestination destination{
       $identifier$ ?finalState
     or end
     $]$
-    destination = @stateDestination.new {!here !finalState}
+    destination = @stateDestination.new {!.here !finalState}
   or
     <full_identifier> ?@lstringlist identifier
     @lbool position
     select
-      $front$ position = @lbool.new {!true !here}
+      $front$ position = @lbool.new {!true !.here}
     or
-      $back$ position = @lbool.new {!false !here}
+      $back$ position = @lbool.new {!false !.here}
     or
-      position = @lbool.new {!false !here}
+      position = @lbool.new {!false !.here}
     end
-    destination = @containerDestination.new {!here !identifier !position}
+    destination = @containerDestination.new {!.here !identifier !position}
   end
 }
 
@@ -522,7 +525,7 @@ rule <statement> !@statement statement{
     $else$
     <statement_list> ?falseStatements
   or end
-  statement = @ifStatement.new {!here !cond !trueStatements !falseStatements}
+  statement = @ifStatement.new {!.here !cond !trueStatements !falseStatements}
 }
 
 #-----------------------------------------------------------------------------
@@ -538,7 +541,7 @@ rule <statement> !@statement statement{
   $for$
   <expression> ?@expression delay
   $;$
-  statement = @startStatement.new {!here !timer !delay !periodic !methodName}
+  statement = @startStatement.new {!.here !timer !delay !periodic !methodName}
 }
 
 #-----------------------------------------------------------------------------
@@ -548,7 +551,7 @@ rule <statement> !@statement statement{
   $for$ $each$
   <iteration_list> ?@itemAndContainerList iteration
   <statement_list> ?@statementList statements
-  statement = @foreachStatement.new {!here !iteration !statements}
+  statement = @foreachStatement.new {!.here !iteration !statements}
 }
 
 #-----------------------------------------------------------------------------
@@ -565,7 +568,7 @@ rule <iteration_list> !@itemAndContainerList iteration{
       $where$
       <expression> ?where
     or
-      where = @boolNode.new {!here !@lbool.new {!true !here}}
+      where = @boolNode.new {!.here !@lbool.new {!true !.here}}
     end
     iteration += !item !container !where
   while
@@ -580,7 +583,7 @@ rule <statement> !@statement statement{
   $call$
   <full_identifier> ?@lstringlist fullMethod
   $;$
-  statement = @methodStatement.new {!here !fullMethod}
+  statement = @methodStatement.new {!.here !fullMethod}
 }
 
 #rule <type> !@exprType type:
@@ -615,38 +618,38 @@ rule <full_identifier> !@lstringlist identifier{
 rule <assignment> ?@lstringlist identifier !@statement statement{
   select
     $=$ @expression expr
-    <expression> ?expr statement = @assignExpressionStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignExpressionStatement.new {!.here !identifier !expr}
   or
     $+=$ @expression expr
-    <expression> ?expr statement = @assignAddStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignAddStatement.new {!.here !identifier !expr}
   or
     $-=$ @expression expr
-    <expression> ?expr statement = @assignSubStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignSubStatement.new {!.here !identifier !expr}
   or
     $*=$ @expression expr
-    <expression> ?expr statement = @assignMulStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignMulStatement.new {!.here !identifier !expr}
   or
     $/=$ @expression expr
-    <expression> ?expr statement = @assignDivStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignDivStatement.new {!.here !identifier !expr}
   or
     $%=$ @expression expr
-    <expression> ?expr statement = @assignRemainStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignRemainStatement.new {!.here !identifier !expr}
   or
     $&=$ @expression expr
-    <expression> ?expr statement = @assignAndStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignAndStatement.new {!.here !identifier !expr}
   or
     $|=$ @expression expr
-    <expression> ?expr statement = @assignOrStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignOrStatement.new {!.here !identifier !expr}
   or
     $<<=$ @expression expr
-    <expression> ?expr statement = @assignShiftLeftStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignShiftLeftStatement.new {!.here !identifier !expr}
   or
     $>>=$ @expression expr
-    <expression> ?expr statement = @assignShiftRightStatement.new {!here !identifier !expr}
+    <expression> ?expr statement = @assignShiftRightStatement.new {!.here !identifier !expr}
   or
-    $++$ statement = @assignIncStatement.new {!here !identifier}
+    $++$ statement = @assignIncStatement.new {!.here !identifier}
   or
-    $--$ statement = @assignDecStatement.new {!here !identifier}
+    $--$ statement = @assignDecStatement.new {!.here !identifier}
   end
 }
 
@@ -661,8 +664,8 @@ rule <access_right> !@accessRight access{
   @bool write = false
   @string accessString = [accessLString string]
   @uint i = 0
-  loop (accessString.length)
-  while i < accessString.length do
+  loop ([accessString length])
+  while i < [accessString length] do
     @char curCar = [accessString characterAtIndex !i]
     if curCar == 'r' then
       read = true
@@ -671,12 +674,12 @@ rule <access_right> !@accessRight access{
     elsif curCar == 'c' then
       constant = true
     else
-      error here: " '"+ curCar +"' is not a valid access right"
+      error .here: " '"+ curCar +"' is not a valid access right"
     end
     i = i + 1
   end
   if write & constant then
-    error here: "'w' and 'c' are incompatible access rights"
+    error .here: "'w' and 'c' are incompatible access rights"
   end
   $)$
   access = @accessRight.new {![accessLString location] !read !write !constant}

@@ -11,7 +11,7 @@ message "a source text file with the .leos extension" ?sourceFilePath:@lstring i
 
   os = [os verify]
   
-  if not [option sdml_options.dryrun value] then
+  if not [option leos_options.dryrun value] then
 #    @TfieldMap configuration := [os configuration];
     
   #  log configuration; 

@@ -421,7 +421,7 @@ override getter @sdmlBasicType create
   ?let @typeDeclarationMap unused types
   ->@varDeclaration variable
 {
-  variable = @builtInVar.new { !varName !selfcopy !rwAccess() }
+  variable = @builtInVar.new { !varName !self !rwAccess() }
 }
 
 override getter @sdmlCustom create

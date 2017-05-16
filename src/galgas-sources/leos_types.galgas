@@ -75,7 +75,7 @@ getter @sdmlType mayContain
   ?let @sdmlType otherType
   ->@bool result
 {
-  result = [selfcopy dynamicType] == [otherType dynamicType]
+  result = [self dynamicType] == [otherType dynamicType]
 }
   
 override getter @sdmlTaskContainer mayContain
@@ -157,7 +157,7 @@ override getter @sdmlNone typeName
 override getter @sdmlBasicType typeName
   ->@string result
 {
-  error here: "@sdmlBasicType has no type name" :result
+  error .here: "@sdmlBasicType has no type name" :result
 }
 
 override getter @sdmlCustom typeName
@@ -205,7 +205,7 @@ override getter @sdmlNone lTypeName
 override getter @sdmlBasicType lTypeName
   ->@lstring result
 {
-  error here: "@sdmlBasicType has no type name" :result
+  error .here: "@sdmlBasicType has no type name" :result
 }
 
 override getter @sdmlCustom lTypeName
@@ -217,25 +217,25 @@ override getter @sdmlCustom lTypeName
 override getter @sdmlInteger lTypeName
   ->@lstring result
 {
-  result = @lstring.new { !"int" !here }
+  result = @lstring.new { !"int" !.here }
 }
 
 override getter @sdmlUnsigned lTypeName
   ->@lstring result
 {
-  result = @lstring.new { !"unsigned" !here }
+  result = @lstring.new { !"unsigned" !.here }
 }
 
 override getter @sdmlBool lTypeName
   ->@lstring result
 {
-  result = @lstring.new { !"bool" !here }
+  result = @lstring.new { !"bool" !.here }
 }
 
 override getter @sdmlTimer lTypeName
   ->@lstring result
 {
-  result = @lstring.new { !"timer" !here }
+  result = @lstring.new { !"timer" !.here }
 }
 
 #---------------------------------------------------------------------------*

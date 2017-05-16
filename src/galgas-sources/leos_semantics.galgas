@@ -44,7 +44,7 @@ map @transDeclarationMap {
 }
 
 getter @typeDeclarationMap hasLKey ?let @lstring lkey -> @bool result{
-  result = [selfcopy hasKey ![lkey string]]
+  result = [self hasKey ![lkey string]]
 }
 
 abstract class @typeDeclaration {
@@ -137,11 +137,11 @@ class @accessRight {
 }
 
 func rwAccess ->@accessRight access {
-  access = @accessRight.new {!here !true !true !false}
+  access = @accessRight.new {!.here !true !true !false}
 }
 
 func roAccess ->@accessRight access {
-  access = @accessRight.new {!here !true !false !false}
+  access = @accessRight.new {!.here !true !false !false}
 }
 
 abstract class @varDeclaration {
@@ -190,11 +190,11 @@ map @lstringmap {
 }
 
 getter @lstringmap hasLKey ?let @lstring lkey ->@bool result{
-  result = [selfcopy hasKey ![lkey string]]
+  result = [self hasKey ![lkey string]]
 }
 
 getter @acceptMap hasLKey ?let @lstring lkey ->@bool result{
-  result = [selfcopy hasKey ![lkey string]]
+  result = [self hasKey ![lkey string]]
 }
 
 abstract class @migrationDestination { @location loc }
@@ -251,7 +251,7 @@ override method @stateDestination checkSource
 #}
 
 #getter @exprType string -> @string result:
-#  switch selfcopy
+#  switch self
 #  when unsignedType: result = "unsigned"
 #  when integerType:  result = "int"
 #  when boolType:     result = "bool"
@@ -498,7 +498,7 @@ override getter @equalNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameType !os !"'=='" ?leftExpr ?rightExpr]
+  [self binSameType !os !"'=='" ?leftExpr ?rightExpr]
   outExpr = @sdmlEqualNode.new {!loc !@sdmlBool.new{} !leftExpr !rightExpr}
 }
 
@@ -508,7 +508,7 @@ override getter @differNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameType !os !"'!='" ?leftExpr ?rightExpr]
+  [self binSameType !os !"'!='" ?leftExpr ?rightExpr]
   outExpr = @sdmlDifferNode.new {!loc !@sdmlBool.new{} !leftExpr !rightExpr}
 }
 
@@ -518,7 +518,7 @@ override getter @lowerEqualNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'<='" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'<='" ?leftExpr ?rightExpr]
   outExpr = @sdmlLowerEqualNode.new {!loc !@sdmlBool.new{} !leftExpr !rightExpr}
 }
 
@@ -528,7 +528,7 @@ override getter @greaterEqualNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'>='" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'>='" ?leftExpr ?rightExpr]
   outExpr = @sdmlGreaterEqualNode.new {!loc !@sdmlBool.new{} !leftExpr !rightExpr}
 }
 
@@ -538,7 +538,7 @@ override getter @lowerNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'<'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'<'" ?leftExpr ?rightExpr]
   outExpr = @sdmlLowerNode.new {!loc !@sdmlBool.new{} !leftExpr !rightExpr}
 }
 
@@ -548,7 +548,7 @@ override getter @greaterNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'>'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'>'" ?leftExpr ?rightExpr]
   outExpr = @sdmlGreaterNode.new {!loc !@sdmlBool.new{} !leftExpr !rightExpr}
 }
 
@@ -558,7 +558,7 @@ override getter @andNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'&'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'&'" ?leftExpr ?rightExpr]
   outExpr = @sdmlAndNode.new {!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -568,7 +568,7 @@ override getter @orNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'|'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'|'" ?leftExpr ?rightExpr]
   outExpr = @sdmlOrNode.new {!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -578,7 +578,7 @@ override getter @xorNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'^'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'^'" ?leftExpr ?rightExpr]
   outExpr = @sdmlXorNode.new {!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -588,7 +588,7 @@ override getter @shiftLeftNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumberAndUnsigned !os !"'<<'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumberAndUnsigned !os !"'<<'" ?leftExpr ?rightExpr]
   outExpr = @sdmlShiftLeftNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -598,7 +598,7 @@ override getter @shiftRightNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumberAndUnsigned !os !"'<<'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumberAndUnsigned !os !"'<<'" ?leftExpr ?rightExpr]
   outExpr = @sdmlShiftRightNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -608,7 +608,7 @@ override getter @andAndNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binBoolean !os !"'&&'" ?leftExpr ?rightExpr]
+  [self binBoolean !os !"'&&'" ?leftExpr ?rightExpr]
   outExpr = @sdmlAndAndNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -618,7 +618,7 @@ override getter @orOrNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binBoolean !os !"'||'" ?leftExpr ?rightExpr]
+  [self binBoolean !os !"'||'" ?leftExpr ?rightExpr]
   outExpr = @sdmlOrOrNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -628,7 +628,7 @@ override getter @addNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'+'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'+'" ?leftExpr ?rightExpr]
   outExpr = @sdmlAddNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -638,7 +638,7 @@ override getter @subNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'-'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'-'" ?leftExpr ?rightExpr]
   outExpr = @sdmlSubNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -648,7 +648,7 @@ override getter @mulNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'*'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'*'" ?leftExpr ?rightExpr]
   outExpr = @sdmlMulNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -658,7 +658,7 @@ override getter @divNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'+'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'+'" ?leftExpr ?rightExpr]
   outExpr = @sdmlDivNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -668,7 +668,7 @@ override getter @remainNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [selfcopy binSameTypeAndNumber !os !"'%'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumber !os !"'%'" ?leftExpr ?rightExpr]
   outExpr = @sdmlRemainNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 
@@ -763,7 +763,7 @@ getter @statement sdmlStatement
   ?let @lstring unused parent
   -> @sdmlStatement outStatement
 {
-  error here: "the @statement sdmlStatement getter should not be called": outStatement
+  error .here: "the @statement sdmlStatement getter should not be called": outStatement
 }
 
 method @assignStatement number
@@ -795,7 +795,7 @@ method @assignExpressionStatement sameTypeAndNumber
 {
   @sdmlType type = [[os varDeclarations] identifierType !identifier !os]
   if [type dynamicType] == `@sdmlUnsigned | [type dynamicType] == `@sdmlInteger then
-    [selfcopy sameType !os !operatorString ?exp]
+    [self sameType !os !operatorString ?exp]
   else
     error loc: operatorString + " operator expects integers or unsigned expression types": exp
   end
@@ -823,7 +823,7 @@ override getter @assignExpressionStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy sameType !os !"=" ?exp]
+  [self sameType !os !"=" ?exp]
   outStatement = @sdmlAssignExpressionStatement.new{!loc !identifier !exp}
 }
 
@@ -833,7 +833,7 @@ override getter @assignAddStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy sameTypeAndNumber !os !"+=" ?exp]
+  [self sameTypeAndNumber !os !"+=" ?exp]
   outStatement = @sdmlAssignAddStatement.new{!loc !identifier !exp}
 }
 
@@ -843,7 +843,7 @@ override getter @assignSubStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy sameTypeAndNumber !os !"-=" ?exp]
+  [self sameTypeAndNumber !os !"-=" ?exp]
   outStatement = @sdmlAssignSubStatement.new{!loc !identifier !exp}
 }
 
@@ -853,7 +853,7 @@ override getter @assignMulStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy sameTypeAndNumber !os !"*=" ?exp]
+  [self sameTypeAndNumber !os !"*=" ?exp]
   outStatement = @sdmlAssignMulStatement.new{!loc !identifier !exp}
 }
 
@@ -863,7 +863,7 @@ override getter @assignDivStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy sameTypeAndNumber !os !"/=" ?exp]
+  [self sameTypeAndNumber !os !"/=" ?exp]
   outStatement = @sdmlAssignDivStatement.new{!loc !identifier !exp}
 }
 
@@ -873,7 +873,7 @@ override getter @assignRemainStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy sameTypeAndNumber !os !"%=" ?exp]
+  [self sameTypeAndNumber !os !"%=" ?exp]
   outStatement = @sdmlAssignRemainStatement.new{!loc !identifier !exp}
 }
 
@@ -883,7 +883,7 @@ override getter @assignAndStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy sameTypeAndNumber !os !"&=" ?exp]
+  [self sameTypeAndNumber !os !"&=" ?exp]
   outStatement = @sdmlAssignAndStatement.new{!loc !identifier !exp}
 }
 
@@ -893,7 +893,7 @@ override getter @assignOrStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy sameTypeAndNumber !os !"|=" ?exp]
+  [self sameTypeAndNumber !os !"|=" ?exp]
   outStatement = @sdmlAssignOrStatement.new{!loc !identifier !exp}
 }
 
@@ -903,7 +903,7 @@ override getter @assignShiftLeftStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy numberAndUnsigned !os !"<<" ?exp]
+  [self numberAndUnsigned !os !"<<" ?exp]
   outStatement = @sdmlAssignShiftLeftStatement.new{!loc !identifier !exp}
 }
 
@@ -913,7 +913,7 @@ override getter @assignShiftRightStatement sdmlStatement
   -> @sdmlStatement outStatement
 {
   @sdmlExpression exp
-  [selfcopy numberAndUnsigned !os !">>" ?exp]
+  [self numberAndUnsigned !os !">>" ?exp]
   outStatement = @sdmlAssignShiftRightStatement.new{!loc !identifier !exp}
 }
 
@@ -922,7 +922,7 @@ override getter @assignIncStatement sdmlStatement
   ?let @lstring unused parent
   -> @sdmlStatement outStatement
 {
-  [selfcopy number !os !"++"]
+  [self number !os !"++"]
   outStatement = @sdmlAssignIncStatement.new{!loc !identifier}
 }
 
@@ -931,7 +931,7 @@ override getter @assignDecStatement sdmlStatement
   ?let @lstring unused parent
   -> @sdmlStatement outStatement
 {
-  [selfcopy number !os !"--"]
+  [self number !os !"--"]
   outStatement = @sdmlAssignDecStatement.new{!loc !identifier}
 }
 
@@ -1015,13 +1015,13 @@ override getter @methodStatement sdmlStatement
 #-----------------------------------------------------------------------------
 getter @lstringlist location ->@location loc{
   @lstring last
-  [selfcopy last ?last]
+  [self last ?last]
   loc = [last location]
 }
 
 getter @lstringlist string ->@string st{
   st = ""
-  for () in selfcopy do
+  for () in self do
     st += [mValue string]
   between
     st += "."
@@ -1263,7 +1263,7 @@ override getter @taskDeclaration fieldType
   ?@lstringlist identifierName
   ->@sdmlType result
 {
-  @varDeclarationMap allFields = [selfcopy allFields !os]
+  @varDeclarationMap allFields = [self allFields !os]
   result = [allFields identifierType !identifierName !os]
 }
 
@@ -1331,7 +1331,7 @@ override getter @refVar varType
       end
     else
 #      log identifierName
-#      log "DATA STRUCT": selfcopy
+#      log "DATA STRUCT": self
 #      log context
       if [identifierName length] == 1 then
         @typeDeclaration typeDeclaration
@@ -1361,7 +1361,7 @@ getter @varDeclarationMap identifierType
   @lstring primaryIdentifierName
   [!?identifierName popFirst ?primaryIdentifierName]
   @varDeclaration identifier
-  [selfcopy getData !primaryIdentifierName ?identifier]
+  [self getData !primaryIdentifierName ?identifier]
   cast identifier
     case >= @builtInVar biv :
       type = [biv varType !os !identifierName]
@@ -1377,11 +1377,11 @@ getter @typeDeclarationMap ancestorsList
   if [leafType string] != "" then
     typeList = @lstringlist.listWithValue{!leafType}
     @typeDeclaration leafTypeDeclaration
-    [selfcopy getTaskType !leafType ?leafTypeDeclaration]
+    [self getTaskType !leafType ?leafTypeDeclaration]
     cast leafTypeDeclaration
     case == @taskDeclaration td :
-      @lstringlist ancestors = [selfcopy ancestorsList ![td father]]
-      typeList = typeList . ancestors
+      @lstringlist ancestors = [self ancestorsList ![td father]]
+      typeList = typeList + ancestors
     else
       error leafType: "type "+leafType+" should be a task type": typeList
     end
@@ -1395,7 +1395,7 @@ getter @varDeclarationMap identifierTypeList
   ?let @os os
   ->@lstringlist typeList
 {
- @sdmlType type = [selfcopy identifierType !identifierName !os]
+ @sdmlType type = [self identifierType !identifierName !os]
  typeList = [[os typeDeclarations] ancestorsList ![type lTypeName]]
 }
   
@@ -1404,7 +1404,7 @@ getter @lstringlist mayContain
   ->@bool result
 {
   result = false
-  for () in selfcopy do
+  for () in self do
     result = result | ([mValue string] == [otherType string])
   end
 }
@@ -1503,7 +1503,7 @@ getter @sdmlType itemType
   ?let @os unused os
   ->@sdmlType result
 {
-  result = selfcopy
+  result = self
 }
 
 override getter @sdmlCollection itemType

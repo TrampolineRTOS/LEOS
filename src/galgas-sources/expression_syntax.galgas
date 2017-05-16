@@ -160,14 +160,14 @@ rule <mult_expr>
       @expressionList expList = .emptyList
       select <expression_list> ?expList or end
       $)$
-      expr = @functionCallNode.new { !here !funcName !expList }
+      expr = @functionCallNode.new { !.here !funcName !expList }
     or
-      expr = @identifierNode.new { !here !identifier }
+      expr = @identifierNode.new { !.here !identifier }
     end  
   or
     @expression subExpr
     $($ <expression> ?subExpr $)$
-    expr = @subExprNode.new { !here !subExpr }
+    expr = @subExprNode.new { !.here !subExpr }
   or
     @expression notExpr
     $!$ @location opLoc = .here <mult_expr> ?notExpr
@@ -179,19 +179,19 @@ rule <mult_expr>
 #  or
 #    @lstringlist identifier
 #    $empty$ $($ <full_identifier> ?identifier $)$
-#    expr = [@emptyNode.new !here !identifier]
+#    expr = [@emptyNode.new !.here !identifier]
   or
     $YES$
-    expr = @boolNode.new { !here !@lbool.new { !true !here } }
+    expr = @boolNode.new { !.here !@lbool.new { !true !.here } }
   or
     $NO$
-    expr = @boolNode.new { !here !@lbool.new { !false !here } }
+    expr = @boolNode.new { !.here !@lbool.new { !false !.here } }
   or
     $min$ <full_identifier> ?@lstringlist field $in$ <full_identifier> ?@lstringlist container
-    expr = @minNode.new { !here !field !container }
+    expr = @minNode.new { !.here !field !container }
   or
     $max$ <full_identifier> ?@lstringlist field $in$ <full_identifier> ?@lstringlist container
-    expr = @maxNode.new { !here !field !container }
+    expr = @maxNode.new { !.here !field !container }
   end 
 }
 
@@ -204,7 +204,7 @@ rule <integer>
     expr = @integerNode.new { ![value location] !value }
   or
     $max_unsigned$
-    expr = @integerNode.new { !here !@luint64.new { !@uint64.max !here } }
+    expr = @integerNode.new { !.here !@luint64.new { !@uint64.max !.here } }
   end 
 }
 
