@@ -3,10 +3,6 @@
 # backend data types and semantics verifications
 #=============================================================================
 
-semantics backend:
-
-import "types.gSemantics" ;
-
 class @backendDeclaration {
   @lstring name;
   @argumentList arguments;
@@ -31,5 +27,3 @@ map @keyedIdentifierMap {
   insert putIdentifier error message "Identifier '%K' is already declared in %L";
   search getIdentifier error message "Identifier '%K' is not declared";
 }
-
-end semantics;
