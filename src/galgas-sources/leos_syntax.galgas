@@ -671,7 +671,7 @@ rule <access_right> !@accessRight access{
     elsif curCar == 'c' then
       constant = true
     else
-      error here: " @curCar is not a valid access right": string
+      error here: " '"+ curCar +"' is not a valid access right"
     end
     i = i + 1
   end
