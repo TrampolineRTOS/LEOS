@@ -1,11 +1,6 @@
 #-----------------------------------------------------------------------------
 # Utility functions
 #-----------------------------------------------------------------------------
-func emptylstring -> @lstring result
-{
-  result = @lstring.new { !"" !.here }
-}
-
 func lstringwith ?let @string value -> @lstring result
 {
   result = @lstring.new { !value !.here }

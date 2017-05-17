@@ -1,0 +1,85 @@
+os Trampoline {
+  cpu processor with extended_task [
+    BUSY: task in RUNNING,
+    IDLE: empty
+  ]
+  (
+    BUSY -> IDLE, IDLE -> BUSY
+  )
+  
+  task basic_task [ SUSPENDED, READY, RUNNING ] {
+    int base_priority (r);
+    int max_activation_count (r);
+    int priority (rw);
+    int activation (rw);
+    bool new (rw);
+  }
+  (
+    SUSPENDED -> READY, READY -> RUNNING, RUNNING -> SUSPENDED
+  )
+  
+  task extended_task [ WAITING ] extends basic_task {
+    unsigned events_wait (rw);
+    unsigned events_set (rw);
+  }
+  (
+    SUSPENDED -> READY,
+    RUNNING -> WAITING,
+    WAITING -> READY
+  )
+
+//  extern function init_context(extended_task t);
+  
+  container processor idle_processor [ IDLE ];
+  container processor busy_processor [ BUSY ];
+  container extended_task queue ready [ READY ] sorted by priority: > ;
+  
+  scheduler fixed_priority with extended_task on processor {
+    init {}
+    method schedule {
+      if (ready.first.priority > busy_processor.running.priority) {
+        move busy_processor.running to ready;
+        move ready.first to idle_processor.running;
+      }
+    }
+  }
+  
+  transitions context_init (basic_task t) {
+    SUSPENDED -> READY {
+      t.new = YES;
+    }
+    READY -> RUNNING {
+      if (t.new) {
+        t.new = NO;
+        /* init_context(t); */
+      }
+    }
+  }
+  
+  transitions reset_event_masks (extended_task t) {
+    SUSPENDED -> READY {
+      t.events_wait = 0;
+      t.events_set = 0;
+    }
+  }
+  
+  backend storm (basic_task t) {
+    activate   { move t to ready;  }
+    unblock    { move t to ready;  }
+    block      { move t to [];   }
+    terminate  { move t to [SUSPENDED]; }
+    sched      { call fixed_priority.schedule; }
+    priority for t.priority
+  }
+/*
+  api osek {
+    ActivateTask(basic_task t)
+      runtime error (t.activation < t.max_activation) 
+    {
+      ready_list <- t
+      
+    }
+  }
+*/
+
+}

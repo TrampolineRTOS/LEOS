@@ -1,11 +1,45 @@
-getter @os configuration
-  ->@gtlData config
+proc leosGenerate
+  ?let @gtlStruct cfg
 {
-  config := @gtlStruct.new { !.here !emptylstring() !.emptyMap }
+  # Get the template directory
+  @string templateDirectory = [option leos_options.template_dir value]
+  templateDirectory = [templateDirectory unixPathWithNativePath]
+  templateDirectory = [templateDirectory stringByStandardizingPath]
+  if [templateDirectory directoryExists] then
+    @gtlContext context = .new {
+      !emptylstring()
+      !""
+      !templateDirectory
+      !""
+      !"leosTemplate"
+      !.emptyList
+      !.emptyList
+      !true
+      !defaultDebugSettings()
+    }
+    @library lib = emptyLib()
+    @string  leosLog = invokeGTL (
+      !@gtlString.new { 
+          !.here 
+          !lstring(!"root template filename") 
+          ![option leos_options.root value]
+       }
+      !context
+      !cfg
+    )
+  else
+    error .here : "The template directory does not exist"
+  end
+}
+
+getter @os configuration
+  ->@gtlStruct config
+{
+  config = @gtlStruct.new { !.here !emptylstring() !.emptyMap }
   
   [!?config setStructField
     !@lstring.new { !"OS" !.here }
-    !@gtlString.new { !.here !lstring("Name of the OS") !name }
+    !@gtlString.new { !.here !lstring(!"Name of the OS") !name }
   ]
 
   # 1 - the data type
@@ -29,9 +63,9 @@ getter @os configuration
   ]
   
   # - backends
-  @gtlMap backends = .new { !.here !lstring("defined backends") !.emptyMap }
+  @gtlMap backends = .new { !.here !lstring(!"defined backends") !.emptyMap }
   for () in backendDeclarations do
-    [backend configuration !?backends];
+    [backend configuration !?backends]
   end
   [!?config setStructField
     !@lstring.new { !"BACKENDS" !.here }
@@ -71,15 +105,15 @@ getter @schedulerDeclaration fieldMap
   result = .new { !.here !emptylstring() !.emptyMap }
   [!?result setStructField
     !@lstring.new { !"NAME" !.here }
-    !@gtlString.new { !.here !name }
+    !@gtlString.new { !.here !emptylstring() !name }
   ]
   [!?result setStructField
     !@lstring.new { !"TASK" !.here }
-    !@gtlString.new { !.here !task }
+    !@gtlString.new { !.here !emptylstring() !task }
   ]
   [!?result setStructField
     !@lstring.new { !"CPU" !.here }
-    !@gtlString.new { !.here !cpu }
+    !@gtlString.new { !.here !emptylstring() !cpu }
   ]
   [!?result setStructField
     !@lstring.new { !"VARIABLES" !.here }
@@ -111,7 +145,7 @@ getter @methodDeclaration fieldMap
   result = .new { !.here !emptylstring() !.emptyMap }
   [!?result setStructField
     !@lstring.new { !"NAME" !.here }
-    !@gtlString.new { !.here !name }
+    !@gtlString.new { !.here !emptylstring() !name }
   ]
   [!?result setStructField
     !@lstring.new { !"VARIABLES" !.here }
@@ -133,7 +167,7 @@ method @typeDeclaration typeAndFields
 {
   [!?config setStructField
     !@lstring.new { !"NAME" !.here }
-    !@gtlString.new { !.here !name }
+    !@gtlString.new { !.here !emptylstring() !name }
   ]
   [!?config setStructField
     !@lstring.new { !"FIELDS" !.here }
@@ -146,13 +180,13 @@ method @lstringmap configuration
 {
   @lstringset statesSet = .emptyMap 
   for () in self do
-    [!?states put
+    [!?statesSet put
       !lkey
     ]
   end
   [!?config setStructField
     !@lstring.new { !"STATES" !.here }
-    !@gtlSet.new { !.here !statesSet }
+    !@gtlSet.new { !.here !emptylstring() !statesSet }
   ]
 }
 
@@ -160,411 +194,798 @@ override getter @taskDeclaration fieldMap
   ?let @typeDeclarationMap types
   ->@gtlStruct result
 {
-  result := [@TfieldMap emptyMap];
-  [selfcopy typeAndFields !types !?result];
-  addLStringValue !?result !"FATHER" !father;
-  addLStringValue !?result !"KIND" !lstringwith[!"TASK"];
-  [states configuration !?result];
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [self typeAndFields !types !?result]
+  [!?result setStructField
+    !@lstring.new { !"FATHER" !.here }
+    !@gtlString.new { !.here !emptylstring() !father }
+  ]
+  [!?result setStructField
+    !@lstring.new { !"KIND" !.here }
+    !@gtlString.new { !.here !emptylstring() !"TASK" }
+  ]
+  [states configuration !?result]
 }
 
-abstract method @acceptStatement acceptStatement ?!@TfieldMap st;
+abstract method @acceptStatement acceptStatement ?!@gtlStruct st
 
-override method @emptyAcceptStatement acceptStatement ?!@TfieldMap st:
-  addLStringValue !?st !"CPUSTATE" !cpuState;
-end method;
+override method @emptyAcceptStatement acceptStatement ?!@gtlStruct st
+{
+  [!?st setStructField
+    !@lstring.new { !"CPUSTATE" !.here }
+    !@gtlString.new { !.here !emptylstring() !cpuState }
+  ]
+}
 
-override method @taskAcceptStatement acceptStatement ?!@TfieldMap st:
-  addLStringValue !?st !"CPUSTATE" !cpuState;
-  addLStringValue !?st !"TASKSTATE" !taskState;
-end method;
+override method @taskAcceptStatement acceptStatement ?!@gtlStruct st
+{
+  [!?st setStructField
+    !@lstring.new { !"CPUSTATE" !.here }
+    !@gtlString.new { !.here !emptylstring() !cpuState }
+  ]
+  [!?st setStructField
+    !@lstring.new { !"TASKSTATE" !.here }
+    !@gtlString.new { !.here !emptylstring() !taskState }
+  ]
+}
 
 method @acceptMap configuration
-  ?!@TfieldMap config
-:
-  @TfieldMap states [emptyMap];
-  foreach selfcopy do
-    @TfieldMap st [emptyMap];
-    [accept acceptStatement !?st];
-    addStructValue !?states ![accept cpuState] !st;
-  end foreach;
-  addMapValue !?config !lstringwith[!"STATES"] !states;
-end method;
+  ?!@gtlStruct config
+{
+  @gtlStruct states = .new { !.here !emptylstring() !.emptyMap }
+  for () in self do
+    @gtlStruct st = .new { !.here !emptylstring() !.emptyMap }
+    [accept acceptStatement !?st]
+    [!?states setStructField
+      ![accept cpuState]
+      !st
+    ]
+  end
+  [!?config setStructField
+    !lstringwith(!"STATES")
+    !states
+  ]
+}
 
-override getter @cpuDeclaration fieldMap ??@typeDeclarationMap types ->@TfieldMap result
-:
-  result := [@TfieldMap emptyMap];
-  [selfcopy typeAndFields !types !?result];
-  addLStringValue !?result !"TASK" !task;
-  addLStringValue !?result !"KIND" !lstringwith[!"CPU"];
-  [states configuration !?result];
-end getter;
+override getter @cpuDeclaration fieldMap
+  ?let @typeDeclarationMap types
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [self typeAndFields !types !?result]
+  [!?result setStructField
+    !lstringwith(!"TASK")
+    !@gtlString.new { !.here !emptylstring() !task }
+  ]
+  [!?result setStructField
+    !lstringwith(!"KIND")
+    !@gtlString.new { !.here !emptylstring() !"CPU" }
+  ]
+  [states configuration !?result]
+}
  
-getter @varDeclarationMap fieldMap ??@typeDeclarationMap types ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  foreach selfcopy do
-    addStructValue !?result !lkey ![var fieldMap !types];
-  end foreach;
-end getter;
+getter @varDeclarationMap fieldMap
+  ?let @typeDeclarationMap types
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  for () in self do
+    [!?result setStructField
+      !lkey
+      ![variable fieldMap !types]
+    ]
+  end
+}
 
-abstract getter @varDeclaration fieldMap ??@typeDeclarationMap types ->@TfieldMap result;
+abstract getter @varDeclaration fieldMap
+  ?let @typeDeclarationMap types
+  ->@gtlStruct 
   
-override getter @builtInVar fieldMap ??@typeDeclarationMap unused types ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addLStringValue !?result !"NAME" !name;
-  addStringValue !?result !lstringwith[!"TYPE"] ![type typeName];
-end getter;
+override getter @builtInVar fieldMap
+  ?let @typeDeclarationMap unused types
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !lstringwith(!"NAME")
+    !@gtlString.new { !.here !emptylstring() !name }
+  ]
+  [!?result setStructField
+    !lstringwith(!"TYPE")
+    !@gtlString.new { !.here !emptylstring() ![type typeName] }
+  ]
+}
 
-override getter @sdmlContainerVar fieldMap ??@typeDeclarationMap types ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  [states configuration !?result];
-  [ordering configuration !?result];
-  addLStringValue !?result !"NAME" !name;
-  addStringValue !?result !lstringwith[!"TYPE"] ![type typeName];
+override getter @sdmlContainerVar fieldMap
+  ?let @typeDeclarationMap types
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [states configuration !?result]
+  [ordering configuration !?result]
+  [!?result setStructField
+    !lstringwith(!"NAME")
+    !@gtlString.new { !.here !emptylstring() !name }
+  ]
+  [!?result setStructField
+    !lstringwith(!"TYPE")
+    !@gtlString.new { !.here !emptylstring() ![type typeName] }
+  ]
   if [type isCollection] then
-    addStringValue !?result !lstringwith[!"QUEUE"] !"YES";
+    [!?result setStructField
+      !lstringwith(!"QUEUE")
+      !@gtlBool.new { !.here !emptylstring() !true }
+    ]
   else
-    addStringValue !?result !lstringwith[!"QUEUE"] !"NO";
-  end if;
+    [!?result setStructField
+      !lstringwith(!"QUEUE")
+      !@gtlBool.new { !.here !emptylstring() !false }
+    ]
+  end
   # lookup the type in types
-  @typeDeclaration containerType;
-  [types getType ![type lTypeName] ?containerType];
-  addStructValue !?result !lstringwith[!"REFTYPE"] ![containerType fieldMap !types];
-end getter;
+  @typeDeclaration containerType
+  [types getType ![type lTypeName] ?containerType]
+  [!?result setStructField
+    !lstringwith(!"REFTYPE")
+    ![containerType fieldMap !types]
+  ]
+}
 
 method @sdmlOrderingList configuration
-  ?!@TfieldMap config
-:
-  @TfieldMapList order [emptyList];
-  foreach selfcopy do
-    @TfieldMap criterion [emptyMap];
-    addStructValue !?criterion !lstringwith[!"KEYS"] ![key fieldMap];
+  ?!@gtlStruct config
+{
+  @list order = .emptyList
+  for () in self do
+    @gtlStruct criterion = .new { !.here !emptylstring() !.emptyMap }
+    [!?criterion setStructField
+      !lstringwith(!"KEYS")
+      ![key fieldMap]
+    ]
     if up then
-      addStringValue !?criterion !lstringwith[!"SORTING"] !"<";
+      [!?criterion setStructField
+        !lstringwith(!"SORTING")
+        !@gtlString.new { !.here !emptylstring() !"<" }
+      ]
     else
-      addStringValue !?criterion !lstringwith[!"SORTING"] !">";
-    end if;
-    order += !criterion;
-  end foreach;
-  addListValue !?config !lstringwith[!"ORDERING"] !order;
-end method;
+      [!?criterion setStructField
+        !lstringwith(!"SORTING")
+        !@gtlString.new { !.here !emptylstring() !">" }
+      ]
+    end
+    order += !criterion
+  end
+  [!?config setStructField
+    !lstringwith(!"ORDERING")
+    !@gtlList.new { !.here !emptylstring() !order }
+  ]
+}
 
 method @backendDeclaration configuration
-  ?!@TfieldMap config
-:
-  @TfieldMap backAttributes [emptyMap];
-  addLStringValue !?backAttributes !"NAME" !name;
-  @TfieldMapList args := [arguments fieldMapList];
-  addListValue !?backAttributes !lstringwith[!"ARGUMENTS"] !args;
-  @TfieldMap keyedStats := [keyedStatements fieldMap];
-  addMapValue !?backAttributes !lstringwith[!"HANDLERS"] !keyedStats;
-  @TfieldMap keyedIdents := [keyedIdentifiers fieldMap];
-  addMapValue !?backAttributes !lstringwith[!"IDENTIFIERS"] ! keyedIdents;
-  addStructValue !?config !name !backAttributes;
-end method;
+  ?!@gtlMap config
+{
+  @gtlStruct backAttributes = .new { !.here !emptylstring() !.emptyMap }
+  [!?backAttributes setStructField
+    !lstringwith(!"NAME")
+    !@gtlString.new { !.here !emptylstring() !name }
+  ]
+  [!?backAttributes setStructField
+    !lstringwith(!"ARGUMENTS")
+    ![arguments fieldMapList]
+  ]
+  [!?backAttributes setStructField
+    !lstringwith(!"HANDLERS")
+    ![keyedStatements fieldMap]
+  ]
+  [!?backAttributes setStructField
+    !lstringwith(!"IDENTIFIERS")
+    ![keyedIdentifiers fieldMap]
+  ]
+  [!?config setMapItem
+    !name
+    !backAttributes
+  ]
+}
 
 getter @argumentList fieldMapList
-  ->@TfieldMapList result
-:
-  result := [@TfieldMapList emptyList];
-  foreach selfcopy do
-    @TfieldMap attrs [emptyMap];
-    addLStringValue !?attrs !"NAME" !name;
-    addLStringValue !?attrs !"TYPE" ![type lTypeName];
-    result += !attrs;
-  end foreach;
-end getter;
+  ->@gtlList result
+{
+  @list resultList = .emptyList
+  for () in self do
+    @gtlStruct attrs = .new { !.here !emptylstring() !.emptyMap }
+    [!?attrs setStructField
+      !lstringwith(!"NAME")
+      !@gtlString.new { !.here !emptylstring() !name }
+    ]
+    [!?attrs setStructField
+      !lstringwith(!"TYPE")
+      !@gtlString.new { !.here !emptylstring() ![type lTypeName] }
+    ]
+    resultList += !attrs
+  end
+  result = .new { !.here !emptylstring() !resultList }
+}
 
 getter @keyedStatementMap fieldMap
-  ->@TfieldMap result
-:
-  result := [@TfieldMap emptyMap];
-  foreach selfcopy do
-    @TfieldMapList statements := [statements fieldMapList];
-    addListValue !?result !lkey !statements;
-  end foreach;
-end getter;
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  for () in self do
+    [!?result setStructField
+      !lkey
+      ![statements fieldMapList]
+    ]
+  end
+}
 
 getter @keyedIdentifierMap fieldMap
-  ->@TfieldMap result
-:
-  result := [@TfieldMap emptyMap];
-  foreach selfcopy do
-    @TfieldMapList statements := [identifier fieldMapList];
-    addListValue !?result !lkey !statements;
-  end foreach;
-end getter;
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  for () in self do
+    [!?result setStructField
+      !lkey
+      ![identifier fieldMapList]
+    ]
+  end
+}
 
 getter @statementList fieldMapList
-  ->@TfieldMapList result
-:
-  result := [@TfieldMapList emptyList];
-  foreach selfcopy do
-    @TfieldMap stat := [statement fieldMap];
-    result += !stat;
-  end foreach;
-end getter;
+  ->@gtlList result
+{
+  @list resultList = .emptyList
+  for () in self do
+    resultList += ![statement fieldMap]
+  end
+  result = .new { !.here !emptylstring() !resultList }
+}
 
-getter @statement fieldMap ->@TfieldMap result:
-  error here: "fieldMap should not be called on this statement": result;
-  message [selfcopy description];
-end getter;
+getter @statement fieldMap
+  ->@gtlStruct result
+{
+  error .here : "fieldMap should not be called on this statement" : result
+  message [self description]
+}
 
-override getter @sdmlAssignExpressionStatement fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result ![@lstring new !"NAME" !loc] !"ASSIGN";
-  addListValue !?result !lstringwith[!"IDENTIFIER"] ![identifier fieldMapList];
-  addStructValue !?result !lstringwith[!"EXP"] ![rightValue fieldMap];
-#  @TfieldMapList ident := [identifier fieldMapList];
-end getter;
+override getter @sdmlAssignExpressionStatement fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"NAME" !loc }
+    !@gtlString.new { !loc !emptylstring() !"ASSIGN" }
+  ]
+  [!?result setStructField
+    !lstringwith(!"IDENTIFIER") 
+    ![identifier fieldMapList]
+  ]
+  [!?result setStructField
+    !lstringwith(!"EXP") 
+    ![rightValue fieldMap]
+  ]
+#  @TfieldMapList ident := [identifier fieldMapList]
+}
 
-override getter @sdmlMoveStatement fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result ![@lstring new !"NAME" !loc] !"MOVE";
-  @TfieldMapList src := [source fieldMapList];
-  addListValue !?result !lstringwith[!"SOURCE"] !src;
-  @TfieldMap dest := [destination fieldMap];
-  addStructValue !?result ![@lstring new !"DESTINATION" ![destination loc]] !dest;
-end getter;
+override getter @sdmlMoveStatement fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"NAME" !loc }
+    !@gtlString.new { !loc !emptylstring() !"MOVE" }
+  ]
+  [!?result setStructField
+    !lstringwith(!"SOURCE") 
+    ![source fieldMapList]
+  ]
+  [!?result setStructField
+    !lstringwith(!"DESTINATION") 
+    ![destination fieldMap]
+  ]
+}
 
-getter @lstringlist fieldMapList ->@TfieldMapList result:
-  result := [@TfieldMapList emptyList];
-  foreach selfcopy do
-    @TfieldMap item [emptyMap];
-    addLStringValue !?item !"IDENT" !mValue;
-    result += !item;
-  end foreach;
-end getter;
+getter @lstringlist fieldMapList
+  ->@gtlList result
+{
+  @list resultList = .emptyList
+  for () in self do
+    @gtlString item = .new { !.here !emptylstring() !mValue }
+    resultList += !item
+  end
+  result = .new { !.here !emptylstring() !resultList }
+}
 
-abstract getter @migrationDestination fieldMap ->@TfieldMap result;
+abstract getter @migrationDestination fieldMap
+  ->@gtlStruct
 
-override getter @containerDestination fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result ![@lstring new !"KIND" !loc] !"CONTAINER";
-  addListValue !?result ![@lstring new !"CONTAINER" !loc] ![container fieldMapList];
-end getter;
+override getter @containerDestination fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"CONTAINER" }
+  ]
+  [!?result setStructField
+    !.new { !"CONTAINER" !loc }
+    ![container fieldMapList]
+  ]
+}
 
-override getter @stateDestination fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result ![@lstring new !"KIND" !loc] !"STATE";
-  addLStringValue !?result !"STATE" !taskState;
-end getter;
+override getter @stateDestination fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"STATE" }
+  ]
+  [!?result setStructField
+    !.new { !"STATE" !loc }
+    !@gtlString.new { !loc !emptylstring() !taskState }
+  ]
+}
 
-override getter @sdmlMethodStatement fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result ![@lstring new !"NAME" !loc] !"CALL";
-  addListValue !?result !lstringwith[!"METHOD"] ![identifier fieldMapList];
-  addLStringValue !?result !"SCHEDULER" !parentScheduler;
-end getter;
+override getter @sdmlMethodStatement fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"NAME" !loc }
+    !@gtlString.new { !loc !emptylstring() !"CALL" }
+  ]
+  [!?result setStructField
+    !.new { !"METHOD" !loc }
+    ![identifier fieldMapList]
+  ]
+  [!?result setStructField
+    !.new { !"SCHEDULER" !loc }
+    !@gtlString.new { !loc !emptylstring() !parentScheduler }
+  ]
+}
 
-override getter @sdmlForeachStatement fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result ![@lstring new !"NAME" !loc] !"FOREACH";
-  addListValue !?result ![@lstring new !"ITEMS" !loc] ![iteration fieldMapList];
-  addListValue !?result ![@lstring new !"STATEMENTS" !loc] ![statements fieldMapList];
-end getter;
+override getter @sdmlForeachStatement fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"NAME" !loc }
+    !@gtlString.new { !loc !emptylstring() !"FOREACH" }
+  ]
+  [!?result setStructField
+    !.new { !"ITEMS" !loc }
+    ![iteration fieldMapList]
+  ]
+  [!?result setStructField
+    !.new { !"STATEMENTS" !loc }
+    ![statements fieldMapList]
+  ]
+}
 
-override getter @sdmlMoveeacheachStatement fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result ![@lstring new !"NAME" !loc] !"MOVEEACH";
-  addListValue !?result !lstringwith[!"SRCITEM"] ![srcItem fieldMapList];
-  addLStringValue !?result !"DSTITEM" !dstItem;
-  addListValue !?result !lstringwith[!"SRCCONTAINER"] ![srcContainer fieldMapList];
-  addListValue !?result !lstringwith[!"DSTCONTAINER"] ![dstContainer fieldMapList];
-  addStructValue !?result ![@lstring new !"WHILECONDITION" ![whileCondition loc]] ![whileCondition fieldMap];
-end getter;
+override getter @sdmlMoveeacheachStatement fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"NAME" !loc }
+    !@gtlString.new { !loc !emptylstring() !"MOVEEACH" }
+  ]
+  [!?result setStructField
+    !.new { !"SRCITEM" !loc }
+    ![srcItem fieldMapList]
+  ]
+  [!?result setStructField
+    !.new { !"DSTITEM" !loc }
+    !@gtlString.new { !loc !emptylstring() !dstItem }
+  ]
+  [!?result setStructField
+    !.new { !"SRCCONTAINER" !loc }
+    ![srcContainer fieldMapList]
+  ]
+  [!?result setStructField
+    !.new { !"DSTCONTAINER" !loc }
+    ![dstContainer fieldMapList]
+  ]
+  [!?result setStructField
+    !.new { !"WHILECONDITION" ![whileCondition loc] }
+    ![whileCondition fieldMap]
+  ]
+}
 
-override getter @sdmlIfStatement fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result ![@lstring new !"NAME" !loc] !"IF";
-  addStructValue !?result ![@lstring new !"CONDITION" ![condition loc]] ![condition fieldMap];
-  addListValue !?result !lstringwith[!"TRUESTATEMENTS"] ![trueStatements fieldMapList];
-  addListValue !?result !lstringwith[!"FALSESTATEMENTS"] ![falseStatements fieldMapList];
-end getter;
+override getter @sdmlIfStatement fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"NAME" !loc }
+    !@gtlString.new { !loc !emptylstring() !"IF" }
+  ]
+  [!?result setStructField
+    !.new { !"CONDITION" ![condition loc] }
+    ![condition fieldMap]
+  ]
+  [!?result setStructField
+    !.new { !"TRUESTATEMENTS" !loc }
+    ![trueStatements fieldMapList]
+  ]
+  [!?result setStructField
+    !.new { !"FALSESTATEMENTS" !loc }
+    ![falseStatements fieldMapList]
+  ]
+}
 
-getter @sdmlItemAndContainerList fieldMapList ->@TfieldMapList result:
-  result := [@TfieldMapList emptyList];
-  foreach selfcopy do
-    @TfieldMap cont [emptyMap];
-    addLStringValue !?cont !"ITEM" !item;
-    addListValue !?cont !lstringwith[!"CONTAINER"] ![container fieldMapList];
-    addStructValue !?cont !lstringwith[!"WHERE"] ![where fieldMap];
-    result += !cont;
-  end foreach;
-end getter;
+getter @sdmlItemAndContainerList fieldMapList
+  ->@gtlList result
+{
+  @list resultList = .emptyList
+  for () in self do
+    @gtlStruct cont = .new { !.here !emptylstring() !.emptyMap }
+    [!?cont setStructField
+      !.new { !"ITEM" ![item location] }
+      !@gtlString.new { ![item location] !emptylstring() !item }
+    ]
+    [!?cont setStructField
+      !.new { !"CONTAINER" ![item location] }
+      ![container fieldMapList]
+    ]
+    [!?cont setStructField
+      !.new { !"WHERE" ![item location] }
+      ![where fieldMap]
+    ]
+    resultList += !cont
+  end
+  result = .new { !.here !emptylstring() !resultList }
+}
 
-getter @sdmlExpressionList fieldMapList ->@TfieldMapList result:
-  result := [@TfieldMapList emptyList];
-  foreach selfcopy do
-    result += ![expr fieldMap];
-  end foreach;
-end getter;
+getter @sdmlExpressionList fieldMapList
+  ->@gtlList result
+{
+  @list resultList = .emptyList
+  for () in self do
+    resultList += ![expr fieldMap]
+  end
+  result = .new { !.here !emptylstring() !resultList }
+}
 
-abstract getter @sdmlExpression fieldMap ->@TfieldMap result;
+abstract getter @sdmlExpression fieldMap
+  ->@gtlStruct
 
-override getter @sdmlFunctionCallNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"FUNCTIONCALL";
-  addLStringValue !?result !"NAME" !funcName;
-  addListValue !?result !lstringwith[!"ARGS"] ![arguments fieldMapList];
-end getter;
+override getter @sdmlFunctionCallNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"FUNCTIONCALL" }
+  ]
+  [!?result setStructField
+    !.new { !"NAME" !loc }
+    !@gtlString.new { !loc !emptylstring() !funcName }
+  ]
+  [!?result setStructField
+    !.new { !"ARGS" !loc }
+    ![arguments fieldMapList]
+  ]
+}
 
-override getter @sdmlIntegerNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"INTEGER";
-  addLUnsignedValue !?result !"VALUE" !integerValue;
-end getter;
+override getter @sdmlIntegerNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"INTEGER" }
+  ]
+  [!?result setStructField
+    !.new { !"VALUE" !loc }
+    !@gtlInt.new { !loc !emptylstring() ![integerValue bigint] }
+  ]
+}
 
-override getter @sdmlBoolNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"BOOL";
-  addLBoolValue !?result !"VALUE" !boolValue;
-end getter;
+override getter @sdmlBoolNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"BOOL" }
+  ]
+  [!?result setStructField
+    !.new { !"VALUE" !loc }
+    !@gtlBool.new { !loc !emptylstring() !boolValue }
+  ]
+}
 
-override getter @sdmlIdentifierNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"IDENTIFIER";
-  addListValue !?result !lstringwith[!"NAME"] ![identifierValue fieldMapList];
-end getter;
+override getter @sdmlIdentifierNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"IDENTIFIER" }
+  ]
+  [!?result setStructField
+    !.new { !"NAME" !loc }
+    ![identifierValue fieldMapList]
+  ]
+}
 
-override getter @sdmlMinNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"MIN";
-  addListValue !?result !lstringwith[!"CONTAINER"] ![container fieldMapList];
-end getter;
+override getter @sdmlMinNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"MIN" }
+  ]
+  [!?result setStructField
+    !.new { !"CONTAINER" !loc }
+    ![container fieldMapList]
+  ]
+}
 
-override getter @sdmlMaxNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"MAX";
-  addListValue !?result !lstringwith[!"CONTAINER"] ![container fieldMapList];
-end getter;
+override getter @sdmlMaxNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"MAX" }
+  ]
+  [!?result setStructField
+    !.new { !"CONTAINER" !loc }
+    ![container fieldMapList]
+  ]
+}
 
-override getter @sdmlSubExprNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"SUBEXPRESSION";
-  addStructValue !?result !lstringwith[!"EXP"] ![expressionValue fieldMap];
-end getter;
+override getter @sdmlSubExprNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"SUBEXPRESSION" }
+  ]
+  [!?result setStructField
+    !.new { !"EXP" !loc }
+    ![expressionValue fieldMap]
+  ]
+}
 
-override getter @sdmlNotNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"NOT";
-  addStructValue !?result !lstringwith[!"EXP"] ![expressionValue fieldMap];
-end getter;
+override getter @sdmlNotNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"NOT" }
+  ]
+  [!?result setStructField
+    !.new { !"EXP" !loc }
+    ![expressionValue fieldMap]
+  ]
+}
 
-override getter @sdmlCompNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"COMP";
-  addStructValue !?result !lstringwith[!"EXP"] ![expressionValue fieldMap];
-end getter;
+override getter @sdmlCompNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"COMP" }
+  ]
+  [!?result setStructField
+    !.new { !"EXP" !loc }
+    ![expressionValue fieldMap]
+  ]
+}
 
-method @sdmlBinNode setExpr ?!@TfieldMap result:
-  addStructValue !?result !lstringwith[!"LEFT"] ![left fieldMap];
-  addStructValue !?result !lstringwith[!"RIGHT"] ![right fieldMap]; 
-end method;
+method @sdmlBinNode setExpr
+  ?!@gtlStruct result
+{
+  [!?result setStructField
+    !.new { !"LEFT" !loc }
+    ![left fieldMap]
+  ]
+  [!?result setStructField
+    !.new { !"RIGHT" !loc }
+    ![right fieldMap]
+  ]
+}
 
-override getter @sdmlEqualNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"EQUAL";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlEqualNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"EQUAL" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlDifferNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"DIFFER";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlDifferNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"DIFFER" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlLowerEqualNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"LOWEROREQUAL";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlLowerEqualNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"LOWEROREQUAL" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlGreaterEqualNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"GREATEROREQUAL";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlGreaterEqualNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"GREATEROREQUAL" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlLowerNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"LOWER";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlLowerNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"LOWER" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlGreaterNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"GREATER";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlGreaterNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"GREATER" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlAndNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"AND";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlAndNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"AND" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlOrNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"OR";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlOrNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"OR" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlXorNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"XOR";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlXorNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"XOR" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlShiftLeftNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"SHIFTLEFT";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlShiftLeftNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"SHIFTLEFT" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlShiftRightNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"SHIFTRIGHT";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlShiftRightNode fieldMap 
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"SHIFTRIGHT" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlAndAndNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"ANDAND";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlAndAndNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"ANDAND" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlOrOrNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"OROR";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlOrOrNode fieldMap 
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"OROR" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlAddNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"ADD";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlAddNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"ADD" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlSubNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"SUB";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlSubNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"SUB" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlMulNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"MUL";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlMulNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"MUL" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlDivNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"DIV";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlDivNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"DIV" }
+  ]
+  [self setExpr !?result]
+}
 
-override getter @sdmlRemainNode fieldMap ->@TfieldMap result:
-  result := [@TfieldMap emptyMap];
-  addStringValue !?result !lstringwith[!"KIND"] !"REMAIN";
-  [selfcopy setExpr !?result];
-end getter;
+override getter @sdmlRemainNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"REMAIN" }
+  ]
+  [self setExpr !?result]
+}

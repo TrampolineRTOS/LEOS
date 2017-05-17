@@ -12,13 +12,13 @@ message "a source text file with the .leos extension" ?sourceFilePath:@lstring i
   os = [os verify]
   
   if not [option leos_options.dryrun value] then
-#    @TfieldMap configuration := [os configuration];
-    
+    @gtlStruct configuration = [os configuration]
+    leosGenerate(!configuration)
   #  log configuration; 
     
 #    addStringValue !?configuration !lstringwith[!"BACKEND"] ![option sdml_options.backend value];
   
-#    @string result := computeTemplate[!"" !configuration !"root"];
+#    @string result := computeTemplate(!"" !configuration !"root");
   end
 }
 
