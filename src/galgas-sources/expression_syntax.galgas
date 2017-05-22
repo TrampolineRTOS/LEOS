@@ -1,16 +1,25 @@
 syntax expression_syntax (leos_lexique)
 {
+
 rule <full_identifier> !@lstringlist identifier
 
 rule <expression>
   !@expression expr
 {
-  <logical_or_expr> ?expr
-  repeat
-  while
-    @expression right
-    $||$ @location opLoc = .here <logical_or_expr> ?right
-    expr = @orOrNode.new { !opLoc !expr !right }
+  select
+    <logical_or_expr> ?expr
+    repeat
+    while
+      @expression right
+      $||$ @location opLoc = .here <logical_or_expr> ?right
+      expr = @orOrNode.new { !opLoc !expr !right }
+    end
+  or
+    $valid$ $identifier$ ?let @lstring name
+    expr = @validNode.new { !.here !name }
+  or
+    $empty$ <full_identifier> ?let @lstringlist name
+    expr = @emptyNode.new { !.here !name }
   end
 }
 

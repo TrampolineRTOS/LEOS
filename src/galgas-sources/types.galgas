@@ -1,10 +1,15 @@
 abstract class @statement { @location loc; }
 
 list @statementList {
-  @statement statement;
+  @statement statement
 }
 
 list @argumentList {
-  @lstring name;
-  @sdmlType type;
+  @lstring name
+  @sdmlType type
+  @bool byReference
+}
+
+list @argumentCallList {
+  @lstringlist name
 }

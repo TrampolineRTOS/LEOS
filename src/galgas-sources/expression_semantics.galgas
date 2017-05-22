@@ -1,4 +1,6 @@
 abstract class @expression { @location loc }
+class @validNode        : @expression { @lstring identifier }
+class @emptyNode        : @expression { @lstringlist identifier }
 abstract class @uniNode : @expression { @expression expressionValue }
 abstract class @binNode : @expression { @expression left @expression right }
 class @functionCallNode : @expression { @lstring funcName @expressionList arguments }

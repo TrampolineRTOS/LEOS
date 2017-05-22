@@ -16,9 +16,12 @@ rule <start_symbol> !@os os {
   @transDeclarationMap transDeclarations = {}
   @funcDeclarationMap funcDeclarations = {}
   @backendDeclarationMap backendDeclarations = {}
+  @apiDeclarationMap apiDeclarations = {}
+  @errorDeclarationMap errorDeclarations = {}
   
   $os$ $identifier$ ?let @lstring osName ${$
   repeat
+  while <type_declaration> !?typeDeclarations
   while <taskType_declaration> !?typeDeclarations
   while <cpuType_declaration> !?typeDeclarations
   while <var_declaration> !?varDeclarations
@@ -26,6 +29,8 @@ rule <start_symbol> !@os os {
   while <trans_declaration> !?transDeclarations
   while <function_declaration> !?funcDeclarations
   while <backend_declaration> !?backendDeclarations
+  while <api_declaration> !?apiDeclarations
+  while <error_declaration> !?errorDeclarations
   end
   $}$
     
@@ -37,6 +42,26 @@ rule <start_symbol> !@os os {
           !schedulerDeclarations
           !transDeclarations
           !backendDeclarations }
+}
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <type_declaration>
+  ?!@typeDeclarationMap declarations
+{
+  $type$ $identifier$ ?let @lstring typeName
+  @varDeclarationMap fields = {}
+  ${$
+    repeat <var_declaration> !?fields
+    while  <var_declaration> !?fields
+    end
+  $}$
+  @normalTypeDeclaration type = .new {
+    !typeName
+    !fields
+  }
+  [!?declarations putType !typeName !type]
 }
 
 #-----------------------------------------------------------------------------
@@ -143,6 +168,10 @@ rule <static_type> !@sdmlType type{
   or
     $bool$ type = @sdmlBool.new{}
   or
+    $list$
+    <static_type> ?@sdmlType listType
+    type = @sdmlList.new { !listType }
+  or
     $identifier$ ?let @lstring typeName type = @sdmlCustom.new {!typeName}
   end
 }
@@ -154,9 +183,7 @@ rule <function_declaration> ?!@funcDeclarationMap declarations{
   $function$
   <static_type> ?let @sdmlType functionType
   $identifier$ ?let @lstring functionName
-  $($
   <argument_list> ?@argumentList arguments
-  $)$
   <declaration_list> ?@varDeclarationMap functionLocals
   <statement_list> ?@statementList statements
   @funcDeclaration function = @funcDeclaration.new {!functionName !functionType !arguments !functionLocals !statements}
@@ -166,32 +193,55 @@ rule <function_declaration> ?!@funcDeclarationMap declarations{
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <argument_list> !@argumentList arguments{
-  arguments = @argumentList.emptyList
-  repeat
-    <static_type> ?@sdmlType type
-    $identifier$ ?let @lstring name
-    arguments += !name !type
-  while $,$
-  end
+rule <argument_list>
+  !@argumentList arguments
+{
+  $($
+  arguments = .emptyList
+  select
+    repeat
+      @bool reference
+      select
+        $var$ reference = true
+      or 
+        reference = false
+      end
+      <static_type> ?@sdmlType type
+      $identifier$ ?let @lstring name
+      arguments += !name !type !reference
+    while $,$
+    end
+  or end
+  $)$
 }
 
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
+rule <argument_call_list>
+  !@argumentCallList arguments
+{
+  $($
+  arguments = .emptyList
+  select
+    repeat
+      <full_identifier> ?let @lstringlist name
+      arguments += !name
+    while $,$
+    end
+  or end
+  $)$
+}
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
 rule <local_var_declaration> ?!@varDeclarationMap declarations
 {
-  select
-    $int$ $identifier$ ?let @lstring varName <access_right> ?let @accessRight access
-    [!?declarations putData !varName !@builtInVar.new {!varName !@sdmlInteger.new !access } ]
-  or
-    $unsigned$ $identifier$ ?let @lstring varName <access_right> ?@accessRight access
-    [!?declarations putData !varName !@builtInVar.new {!varName !@sdmlUnsigned.new !access } ]
-  or
-    $bool$ $identifier$ ?let @lstring varName <access_right> ?@accessRight access
-    [!?declarations putData !varName !@builtInVar.new {!varName !@sdmlBool.new !access } ]
-  end
+  <static_type> ?let @sdmlType type
+  $identifier$ ?let @lstring varName <access_right> ?let @accessRight access
+  [!?declarations putData !varName !@builtInVar.new {!varName !type !access } ]
 }
 
 #-----------------------------------------------------------------------------
@@ -318,14 +368,15 @@ rule <scheduler_declaration>
   repeat
   while
     $method$ $identifier$ ?let @lstring methodName
+    <argument_list> ?let @argumentList arguments
     <declaration_list> ?@varDeclarationMap methodLocals
     <statement_list> ?@statementList statements
-    [!?methods putMethod !methodName !@methodDeclaration.new {!methodName !methodLocals !statements}]
+    [!?methods putMethod !methodName !@methodDeclaration.new {!methodName !arguments !methodLocals !statements}]
   while
     $init$ @lstring methodName = @lstring.new {!"init" !.here}
     <declaration_list> ?@varDeclarationMap methodLocals
     <statement_list> ?@statementList statements
-    [!?methods putMethod !methodName !@methodDeclaration.new {!methodName !methodLocals !statements}]
+    [!?methods putMethod !methodName !@methodDeclaration.new {!methodName !.emptyList !methodLocals !statements}]
   while
     <var_declaration> !?locals
   end
@@ -339,9 +390,7 @@ rule <scheduler_declaration>
 rule <backend_declaration> ?!@backendDeclarationMap declarations{
   $backend$
   $identifier$ ?let @lstring backendName
-  $($
   <argument_list> ?@argumentList arguments
-  $)$
   ${$
   @keyedStatementMap keyStatements = .emptyMap
   @keyedIdentifierMap keyIdentifier = .emptyMap
@@ -360,6 +409,92 @@ rule <backend_declaration> ?!@backendDeclarationMap declarations{
   @backendDeclaration backend = @backendDeclaration.new {!backendName !arguments !keyStatements !keyIdentifier}
   [!?declarations putBackend !backendName !backend]
 #  message "Backend ".backendName." added\n";
+}
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <error_declaration>
+  ?!@errorDeclarationMap errorDeclarations
+{
+  $error$
+  $identifier$ ?let @lstring errorSet
+  ${$
+  @errorList errorList = .emptyList
+  repeat
+    $identifier$ ?let @lstring errorCode
+    @luint64 errorValue
+    @bool valueSet
+    select
+      $=$ $integer$ ?errorValue
+      valueSet = true
+    or
+      errorValue = .new { !0 !.here }
+      valueSet = false
+    end
+    errorList += !errorCode !valueSet !errorValue
+  while $,$
+  end
+  $}$
+  [!?errorDeclarations putError
+    !errorSet
+    !errorList
+  ]
+}
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <api_declaration>
+  ?!@apiDeclarationMap apiDeclarations
+{
+  $api$
+  $identifier$ ?let @lstring apiName
+  @lstring schedulerName
+  select
+    $with$ $scheduler$
+    $identifier$ ?schedulerName
+  or
+    schedulerName = .new { !"" !.here }
+  end
+  @serviceList services = .emptyList
+  ${$
+  repeat
+    <service_declaration> ?let @service service
+    services += !service
+  while end
+  $}$
+  [!?apiDeclarations putApi
+    !apiName
+    !.new { !apiName !schedulerName !services }
+  ]
+}
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <service_declaration>
+  !@service service
+{
+  $service$
+  $identifier$ ?let @lstring name
+  <argument_list> ?@argumentList arguments
+  @checkList checks = .emptyList
+  repeat
+  while
+    $check$ $($ <expression>?let @expression checkExpression $)$
+    $:$ $identifier$ ?let @lstring errorCode
+    checks += !.new { !checkExpression !errorCode }
+  end
+  <declaration_list> ?let @varDeclarationMap serviceLocals
+  <statement_list> ?let @statementList statements
+  service = .new {
+    !name
+    !arguments
+    !serviceLocals
+    !checks
+    !statements
+  }
 }
 
 #-----------------------------------------------------------------------------
@@ -531,19 +666,19 @@ rule <statement> !@statement statement{
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement{
-  $start$
-  @bool periodic = false
-  select $periodic$ periodic = true or end
-  <full_identifier> ?@lstringlist timer
-  @lstringlist methodName = .emptyList
-  select $with$ <full_identifier> ?methodName or end
-  $for$
-  <expression> ?@expression delay
-  $;$
-  statement = @startStatement.new {!.here !timer !delay !periodic !methodName}
-}
-
+#rule <statement> !@statement statement{
+#  $start$
+#  @bool periodic = false
+#  select $periodic$ periodic = true or end
+#  <full_identifier> ?@lstringlist timer
+#  @lstringlist methodName = .emptyList
+#  select $with$ <full_identifier> ?methodName or end
+#  $for$
+#  <expression> ?@expression delay
+#  $;$
+#  statement = @startStatement.new {!.here !timer !delay !periodic !methodName}
+#}
+#
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
@@ -579,12 +714,12 @@ rule <iteration_list> !@itemAndContainerList iteration{
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement{
-  $call$
-  <full_identifier> ?@lstringlist fullMethod
-  $;$
-  statement = @methodStatement.new {!.here !fullMethod}
-}
+#rule <statement> !@statement statement{
+#  $call$
+#  <full_identifier> ?@lstringlist fullMethod
+#  $;$
+#  statement = @methodStatement.new {!.here !fullMethod}
+#}
 
 #rule <type> !@exprType type:
 #  select
@@ -615,7 +750,10 @@ rule <full_identifier> !@lstringlist identifier{
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <assignment> ?@lstringlist identifier !@statement statement{
+rule <assignment>
+  ?@lstringlist identifier
+  !@statement statement
+{
   select
     $=$ @expression expr
     <expression> ?expr statement = @assignExpressionStatement.new {!.here !identifier !expr}
@@ -647,10 +785,52 @@ rule <assignment> ?@lstringlist identifier !@statement statement{
     $>>=$ @expression expr
     <expression> ?expr statement = @assignShiftRightStatement.new {!.here !identifier !expr}
   or
+    $->$
+    <full_identifier> ?let @lstringlist destination
+    statement = @moveFrontStatement.new {!.here !identifier !destination }
+  or
+    $<-$
+    <full_identifier> ?let @lstringlist source
+    statement = @moveBackStatement.new {!.here !source !identifier }
+  or
     $++$ statement = @assignIncStatement.new {!.here !identifier}
   or
     $--$ statement = @assignDecStatement.new {!.here !identifier}
   end
+}
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <statement>
+  !@statement statement
+{
+  $[$
+  @lstring nextState
+  select
+    $identifier$ ?nextState
+  or
+    nextState = .new { !"" !.here }
+  end
+  $]$
+  $<-$
+  <full_identifier> ?let @lstringlist source
+  $;$
+  statement = @moveOutStatement.new { !.here !source !nextState }
+}
+
+#-----------------------------------------------------------------------------
+# 
+#-----------------------------------------------------------------------------
+rule <statement>
+  !@statement statement
+{
+  $scheduler$
+  $.$
+  $identifier$ ?let @lstring methodName
+  <argument_call_list> ?let @argumentCallList arguments
+  $;$
+  statement = @schedulerMethodStatement.new { !.here !.new { !"" !.here } !methodName !arguments }
 }
 
 #-----------------------------------------------------------------------------

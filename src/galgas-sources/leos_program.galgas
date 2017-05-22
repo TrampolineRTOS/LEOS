@@ -22,6 +22,12 @@ message "a source text file with the .leos extension" ?sourceFilePath:@lstring i
   end
 }
 
+case . "leosTemplate"
+message "A LEOS template file"
+   ?sourceFilePath:@lstring unused inSourceFile
+{
+}
+
 #--- Epilogue routine
 after {
 }

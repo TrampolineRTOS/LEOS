@@ -5,9 +5,11 @@ class @sdmlInteger : @sdmlBasicType {}
 class @sdmlUnsigned : @sdmlBasicType {}
 class @sdmlBool : @sdmlBasicType {}
 class @sdmlTimer : @sdmlBasicType {}
+class @sdmlList : @sdmlBasicType { @sdmlType listType }
 
 class @sdmlCustom : @sdmlBasicType { @lstring name }
 
+class @sdmlNormalTypeRef : @sdmlCustom {}
 class @sdmlTaskRef : @sdmlCustom {}
 class @sdmlCpuRef : @sdmlCustom {}
 

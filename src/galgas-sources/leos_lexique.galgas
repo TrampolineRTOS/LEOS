@@ -35,16 +35,16 @@ list keywordsList style keywordsStyle error message "'%K' keyword"
 {
   "move", "each", "to", "scheduler", "os", "task", "cpu", "init", "with",
   "state", "error", "timer", "sorted", "when", "while", "on", "in", "empty",
-  "start", "periodic", "call", "max_unsigned", "max_int", "min_int", "by",
+  "periodic", "call", "max_unsigned", "max_int", "min_int", "by", "check",
   "transitions", "extends", "for", "where", "function", "backend",
-  "service", "runtime",
+  "service", "runtime", "assumes", "type", "valid", "list", "var",
   "container", "min", "max", "front", "back", "api", "int", "unsigned",
   "bool", "method", "queue", "if", "else", "YES", "NO"
 }
   
 list delimiters style delimitersStyle error message "'%K' delimiter"
 {
-  "{", "}", "[", "]", "(", ")", ";", ",", ".", "->", ":"
+  "{", "}", "[", "]", "(", ")", ";", ",", ".", "->", "<-", ":"
 }
 
 rule list delimiters

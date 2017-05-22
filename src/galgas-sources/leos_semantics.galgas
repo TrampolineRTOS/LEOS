@@ -43,6 +43,12 @@ map @transDeclarationMap {
   search getTrans error message "Transitions '%K' are not declared"
 }
 
+map @apiDeclarationMap {
+  @apiDeclaration api
+  insert putApi error message "API '%K' are already declared in %L"
+  search getApi error message "API '%K' are not declared"
+}
+
 getter @typeDeclarationMap hasLKey ?let @lstring lkey -> @bool result{
   result = [self hasKey ![lkey string]]
 }
@@ -50,10 +56,14 @@ getter @typeDeclarationMap hasLKey ?let @lstring lkey -> @bool result{
 abstract class @typeDeclaration {
   @lstring name
   @varDeclarationMap fields
-  @transitionList allowed
 }
 
-class @taskDeclaration : @typeDeclaration {
+class @normalTypeDeclaration : @typeDeclaration {}
+
+abstract class @specialTypeDeclaration : @typeDeclaration {}
+
+class @taskDeclaration : @specialTypeDeclaration {
+  @transitionList allowed
   @lstring father
   @lstringmap states
 }
@@ -83,7 +93,8 @@ getter @taskDeclaration allStates
   end
 }
 
-class @cpuDeclaration :  @typeDeclaration {
+class @cpuDeclaration :  @specialTypeDeclaration {
+  @transitionList allowed
   @lstring task
   @acceptMap states
 }
@@ -98,6 +109,7 @@ class @schedulerDeclaration {
 
 class @methodDeclaration {
   @lstring name
+  @argumentList arguments
   @varDeclarationMap locals
   @statementList statements
 }
@@ -113,6 +125,46 @@ class @transDeclaration {
   @lstring taskType
   @lstring taskName
   @transitionList transitions
+}
+
+map @errorDeclarationMap {
+  @errorList errors
+  insert putError error message "Error set '%K' is already declared in %L"
+  search getError error message "Error set '%K' is not declared"
+}
+
+list @errorList {
+  @lstring name
+  @bool    valueSet
+  @luint64 value
+}
+
+class @apiDeclaration {
+  @lstring name
+  @lstring scheduler
+  @serviceList services
+}
+  
+
+list @serviceList {
+  @service service
+}
+
+class @service {
+  @lstring name
+  @argumentList arguments
+  @varDeclarationMap locals
+  @checkList assumes
+  @statementList statements
+}
+
+list @checkList {
+  @check check
+}
+
+class @check {
+  @expression good
+  @lstring errorCode
 }
 
 class @funcDeclaration {
@@ -271,6 +323,8 @@ list @sdmlOrderingList {
 }
 
 abstract class @sdmlExpression { @location loc @sdmlType type }
+class @sdmlValidNode        : @sdmlExpression { @lstring identifier }
+class @sdmlEmptyNode        : @sdmlExpression { @lstringlist identifier }
 abstract class @sdmlUniNode : @sdmlExpression { @sdmlExpression expressionValue }
 abstract class @sdmlBinNode : @sdmlExpression { @sdmlExpression left @sdmlExpression right }
 class @sdmlFunctionCallNode : @sdmlExpression { @lstring funcName @sdmlExpressionList arguments }
@@ -379,6 +433,20 @@ method @binNode binBoolean
   else
     error loc: operatorString + " operator expects boolean operand expressions"
   end
+}
+
+override getter @validNode sdmlExpression
+  ?let @os unused os
+  ->@sdmlExpression outExpr
+{
+  outExpr = @sdmlValidNode.new { !loc !@sdmlBool.new {} !identifier }
+}
+
+override getter @emptyNode sdmlExpression
+  ?let @os unused os
+  ->@sdmlExpression outExpr
+{
+  outExpr = @sdmlEmptyNode.new { !loc !@sdmlBool.new {} !identifier }
 }
 
 override getter @integerNode sdmlExpression
@@ -694,6 +762,8 @@ override getter @functionCallNode sdmlExpression
 
 
 abstract class @assignStatement : @statement { @lstringlist identifier }
+class @moveFrontStatement : @assignStatement { @lstringlist destination }
+class @moveBackStatement : @assignStatement { @lstringlist source }
 class @assignExpressionStatement : @assignStatement { @expression rightValue }
 class @assignAddStatement : @assignExpressionStatement {}
 class @assignSubStatement : @assignExpressionStatement {}
@@ -706,7 +776,7 @@ class @assignShiftLeftStatement : @assignExpressionStatement {}
 class @assignShiftRightStatement : @assignExpressionStatement {}
 class @assignIncStatement : @assignStatement {}
 class @assignDecStatement : @assignStatement {}
-class @methodStatement : @statement { @lstringlist identifier }
+class @schedulerMethodStatement : @statement { @lstring scheduler @lstring methodName @argumentCallList arguments }
 class @functionCallStatement : @statement { @lstring funcName @expressionList arguments }
 class @ifStatement : @statement { @expression condition @statementList trueStatements @statementList falseStatements }
 class @moveStatement : @statement { @lstringlist source @migrationDestination destination }
@@ -714,6 +784,7 @@ class @startStatement : @statement { @lstringlist timer @expression delay @bool 
 class @foreachStatement : @statement { @itemAndContainerList iteration @statementList statements}
 class @moveeachStatement : @statement { @lstringlist srcItem @lstringlist srcContainer @migrationDestination destination @expression whileCondition }
 class @moveeacheachStatement : @statement { @lstringlist srcItem @lstringlist srcContainer @lstring dstItem @lstringlist dstContainer @expression whileCondition }
+class @moveOutStatement : @assignStatement { @lstring nextState }
 
 list @itemAndContainerList {
   @lstring item
@@ -745,7 +816,7 @@ class @sdmlAssignShiftRightStatement : @sdmlAssignExpressionStatement {}
 class @sdmlAssignIncStatement : @sdmlAssignStatement {}
 class @sdmlAssignDecStatement : @sdmlAssignStatement {}
 class @sdmlFunctionCallStatement : @sdmlStatement { @lstring funcName @sdmlExpressionList arguments }
-class @sdmlMethodStatement : @sdmlStatement { @lstringlist identifier @lstring parentScheduler }
+class @sdmlMethodStatement : @sdmlStatement { @lstring parentScheduler @lstring methodName @argumentCallList arguments }
 class @sdmlIfStatement : @sdmlStatement { @sdmlExpression condition @statementList trueStatements @statementList falseStatements }
 class @sdmlMoveStatement : @sdmlStatement { @lstringlist source @migrationDestination destination }
 class @sdmlStartStatement : @sdmlStatement { @lstringlist timer @sdmlExpression delay @bool periodic @lstringlist methodName }
@@ -975,36 +1046,21 @@ override getter @moveStatement sdmlStatement
 #-----------------------------------------------------------------------------
 # For a @methodStatement verify the method exists
 #-----------------------------------------------------------------------------
-override getter @methodStatement sdmlStatement
+override getter @schedulerMethodStatement sdmlStatement
   ?let @os os
   ?let @lstring parent
   -> @sdmlStatement outStatement
 {
-#  message "parent = ".[parent string]."\n"
-  @lstring primaryIdentifier
-  [identifier first ?primaryIdentifier]
-  @lstring secondaryIdentifier
-  [identifier last ?secondaryIdentifier]
-  if [identifier length] == 1 then
-    # local method call. Get the scheduler declaration
-    @schedulerDeclaration myScheduler
-    if not [[os schedulerDeclarations] hasKey ![parent string]] then
-      error loc: "method does not exists, did you forget to prefix it by the name of the scheduler ?": myScheduler
-    else
-      [[os schedulerDeclarations] getScheduler !parent ?myScheduler]
-    end
-    @methodDeclaration theMethod
-    [[myScheduler methods] getMethod !primaryIdentifier ?theMethod]
-  elsif [identifier length] == 2 then
-    # scheduler method call. Get the scheduler declaration
-    @schedulerDeclaration myScheduler
-    [[os schedulerDeclarations] getScheduler !primaryIdentifier ?myScheduler]
-    @methodDeclaration theMethod
-    [[myScheduler methods] getMethod !secondaryIdentifier ?theMethod]
+  # local method call. Get the scheduler declaration
+  @schedulerDeclaration myScheduler
+  if not [[os schedulerDeclarations] hasKey ![parent string]] then
+    error loc: "method does not exists, did you forget to prefix it by the name of the scheduler ?": myScheduler
   else
-    error secondaryIdentifier: "unexpected method identifier"
+    [[os schedulerDeclarations] getScheduler !parent ?myScheduler]
   end
-  outStatement = @sdmlMethodStatement.new{!loc !identifier !parent}
+  @methodDeclaration theMethod
+  [[myScheduler methods] getMethod !methodName ?theMethod]
+  outStatement = @sdmlMethodStatement.new{!loc !scheduler !methodName !arguments}
 }
 
 #-----------------------------------------------------------------------------

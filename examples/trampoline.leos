@@ -1,0 +1,197 @@
+os Trampoline {
+  cpu processor with extended_task [
+    BUSY: task in RUNNING,
+    IDLE: empty
+  ]
+  (
+    BUSY -> IDLE, IDLE -> BUSY
+  )
+  
+  type resource_t {
+    basic_task owner (rw);
+    int  owner_previous_priority (rw);
+    int  priority (r);
+  }
+  
+  task basic_task [ SUSPENDED, READY, RUNNING ] {
+    int base_priority (r);
+    int max_activation_count (r);
+    int priority (rw);
+    int activation (rw);
+    bool new (rw);
+    list resource_t resources (rw);
+  }
+  (
+    SUSPENDED -> READY,
+    READY -> RUNNING,
+    RUNNING -> SUSPENDED
+  )
+  
+  task extended_task [ WAITING ] extends basic_task {
+    unsigned events_wait (rw);
+    unsigned events_set (rw);
+  }
+  (
+    RUNNING -> WAITING,
+    WAITING -> READY
+  )
+
+//  extern function init_context(extended_task t);
+  
+  container extended_task running [ RUNNING ];
+  
+  container extended_task queue ready_queue [ READY ] sorted by priority: > ;
+  
+  scheduler fixed_priority with extended_task on processor {
+    init {}
+    method schedule()
+    {
+      if (ready_queue.first.priority > busy_processor.running.priority) {
+        busy_processor.running -> ready_queue;
+        idle_processor.running <- ready_queue.first;
+      }
+    }
+    
+    method activate(extended_task t)
+    {
+      ready_queue <- t;
+      t.activation++;
+    }
+    
+    method terminate()
+    {
+      busy_processor.running.activation--;
+      if (busy_processor.running.activation == 0) {
+        [ SUSPENDED ] <- busy_processor.running;
+      }
+      else {
+        [ ] <- busy_processor.running;
+      }
+    }
+    
+    method preempt()
+    {
+      busy_processor.running -> ready_queue;
+    }
+    
+    method start()
+    {
+      idle_processor.running <- ready_queue.first;
+    }
+    
+    method block()
+    {
+      [ WAITING ] <- busy_processor.running;
+    }
+    
+    method release(extended_task t)
+    {
+      ready_queue <- t;
+    }
+  }
+  
+  transitions context_init (basic_task t) {
+    SUSPENDED -> READY {
+      t.new = YES;
+    }
+    READY -> RUNNING {
+      if (t.new) {
+        t.new = NO;
+        /* init_context(t); */
+      }
+    }
+  }
+  
+  transitions reset_event_masks (extended_task t) {
+    SUSPENDED -> READY {
+      t.events_wait = 0;
+      t.events_set = 0;
+    }
+  }
+  
+/*
+ * A minimal test API
+ */
+  error osek_errors {
+    E_OK = 0,
+    E_OS_ID,
+    E_OS_LIMIT,
+    E_OS_RESOURCE
+  }
+  
+  api osek_task with scheduler fixed_priority {
+    
+    service ActivateTask(extended_task t)
+      check (valid t) : E_OS_ID
+      check (t.activation < t.max_activation) : E_OS_LIMIT
+    {
+      scheduler.activate(t);
+      scheduler.schedule();
+    }
+    
+    service TerminateTask()
+      check (empty caller.resources) : E_OS_RESOURCE
+    {
+      scheduler.terminate();
+      scheduler.start();
+    }
+    
+    service ChainTask(extended_task t)
+      check (valid t) : E_OS_ID
+      check (t != caller && t.activation < t.max_activation) : E_OS_LIMIT
+      check (empty caller.resources) : E_OS_RESOURCE
+    {
+      scheduler.terminate();
+      scheduler.activate(t);
+      scheduler.start();
+    }
+    
+    service GetTaskID(var extended_task t)
+    {
+      t = caller;
+    }
+    
+//    service GetTaskState(extended_task t, var state s)
+//      check (valid t) : E_OS_ID
+//    {
+//      s = state t;
+//    }
+    
+    service Schedule()
+    {
+      scheduler.schedule();
+    }
+
+  }
+
+  api osek_resources with scheduler fixed_priority {
+    
+    service GatResource(resource_t r)
+      check (valid r) : E_OS_ID
+      check (empty r.owner) : E_OS_ACCESS
+      check (r.priority >= caller.base_priority) : E_OS_ACCESS
+    {
+      if (caller.priority < r.priority) {
+        r.owner_previous_priority = caller.priority;
+        caller.priority = r.priority;
+      }
+      r.owner = caller;
+      r -> caller.resources;
+    }
+    
+    service ReleaseResource(resource_t r)
+      check (valid r) : E_OS_ID
+      check (r.owner == caller) : E_OS_NOFUNC
+      check (caller.resources.first == r) : E_OS_NOFUNC
+      check (r.priority >= caller.base_priority) : E_OS_ACCESS
+    {
+      caller.resources.deleteFirst();
+//      r.owner = empty
+      if (caller.priority > r.owner_previous_priority) {
+        caller.priority = r.owner_previous_priority;
+      }
+    }
+      
+  }
+
+}

@@ -46,6 +46,17 @@ getter @os verify -> @os result
 abstract getter @typeDeclaration verify
   ?let @os os
   ->@typeDeclaration
+  
+#---------------------------------------------------------------------------*
+# verify the type declarations:
+#
+override getter @normalTypeDeclaration verify
+  ?let @os unused os
+  ->@typeDeclaration result
+{
+  result = self
+}
+
 #---------------------------------------------------------------------------*
 # verify the task declarations:
 # - each task declaration should have an existing ancestor
@@ -153,6 +164,12 @@ abstract method @typeDeclaration checkStates
   ?let @os os
   ?let @lstringmap containerStates;
 
+override method @normalTypeDeclaration checkStates
+  ?let @os unused os
+  ?let @lstringmap unused containerStates
+{
+}
+
 override method @taskDeclaration checkStates
   ?let @os os
   ?let @lstringmap containerStates
@@ -247,7 +264,7 @@ getter @methodDeclaration verify
   for () in statements do
     verifiedStatements += ![statement sdmlStatement !osWithLocals !parent]
   end
-  result = @methodDeclaration.new { !name !locals !verifiedStatements }
+  result = @methodDeclaration.new { !name !arguments !locals !verifiedStatements }
 }
 
 #---------------------------------------------------------------------------*

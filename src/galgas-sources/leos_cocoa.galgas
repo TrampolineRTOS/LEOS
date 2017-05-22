@@ -9,6 +9,12 @@ gui cocoa
     blockComment : "//"
   }
 
+  with lexique gtl_scanner {
+    fileExtension : "leosTemplate"
+    title: "Template"
+    blockComment : "#"
+  }
+
 #  with lexique "template_scanner.gLexique" {
 #  fileExtension: "sdmlTemplate" ;
 #  title: "Template" ;

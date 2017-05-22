@@ -190,6 +190,18 @@ method @lstringmap configuration
   ]
 }
 
+override getter @normalTypeDeclaration fieldMap
+  ?let @typeDeclarationMap types
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [self typeAndFields !types !?result]
+  [!?result setStructField
+    !@lstring.new { !"KIND" !.here }
+    !@gtlString.new { !.here !emptylstring() !"TYPE" }
+  ]
+}
+
 override getter @taskDeclaration fieldMap
   ?let @typeDeclarationMap types
   ->@gtlStruct result
@@ -535,7 +547,7 @@ override getter @sdmlMethodStatement fieldMap
   ]
   [!?result setStructField
     !.new { !"METHOD" !loc }
-    ![identifier fieldMapList]
+    !@gtlString.new { !loc !emptylstring() !methodName }
   ]
   [!?result setStructField
     !.new { !"SCHEDULER" !loc }
@@ -664,6 +676,34 @@ override getter @sdmlFunctionCallNode fieldMap
   [!?result setStructField
     !.new { !"ARGS" !loc }
     ![arguments fieldMapList]
+  ]
+}
+
+override getter @sdmlValidNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"VALID" }
+  ]
+  [!?result setStructField
+    !.new { !"VALUE" !loc }
+    !@gtlString.new { ![identifier location] !emptylstring() !identifier }
+  ]
+}
+
+override getter @sdmlEmptyNode fieldMap
+  ->@gtlStruct result
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  [!?result setStructField
+    !.new { !"KIND" !loc }
+    !@gtlString.new { !loc !emptylstring() !"EMPTY" }
+  ]
+  [!?result setStructField
+    !.new { !"VALUE" !loc }
+    ![identifier fieldMapList]
   ]
 }
 
