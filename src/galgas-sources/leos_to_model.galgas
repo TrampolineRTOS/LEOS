@@ -1,0 +1,66 @@
+#------------------------------------------------------------------------------#
+#                       Model generation from leos                             #      
+#------------------------------------------------------------------------------#
+
+abstract class @node {
+   @lstring nodeName
+   @lstring nodeId
+}
+
+class @transition {
+      @lstring sourceNode
+      @lstring targetNode
+      @lstring guard
+      @lstring synchronisation
+      @lstring update 
+}
+
+class @if_node : @node {
+      @transition thenTransition 
+      @transition elseTransition
+}
+ 
+class @loop_node : @node {
+      @transition trueTransition 
+      @transition falseTransition
+}
+
+class @seq_node : @node {
+      @transition outTransition 
+}
+ 
+map @if_nodeMap {
+    @if_node if_node
+    insert insertKey error message "the '%K' key is already declared in %L"
+    search searchKey error message "the '%K' key is not defined"
+    remove removeKey error message "the '%K' key is not defined"
+}
+
+map @loop_nodeMap {
+    @loop_node loop_node
+    insert insertKey error message "the '%K' key is already declared in %L"
+    search searchKey error message "the '%K' key is not defined"
+    remove removeKey error message "the '%K' key is not defined"
+}
+
+map @seq_nodeMap {
+    @seq_node seq_node
+    insert insertKey error message "the '%K' key is already declared in %L"
+    search searchKey error message "the '%K' key is not defined"
+    remove removeKey error message "the '%K' key is not defined"
+}
+
+map @transitionMap {
+    @transition transition
+    insert insertKey error message "the '%K' key is already declared in %L"
+    search searchKey error message "the '%K' key is not defined"
+    remove removeKey error message "the '%K' key is not defined"
+}
+
+class @automaton {
+      @lstring name 
+      @if_nodeMap ifNodeMap
+      @loop_nodeMap loopNodeMap
+      @seq_nodeMap seqNodeMap
+      @transitionMap transitionMap
+}
