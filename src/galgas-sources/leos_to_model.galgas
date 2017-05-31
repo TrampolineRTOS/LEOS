@@ -64,3 +64,56 @@ class @automaton {
       @seq_nodeMap seqNodeMap
       @transitionMap transitionMap
 }
+
+
+getter @schedulerDeclaration allMethods  
+  -> @methodDeclarationMap result 
+{
+  result = self.methods 
+}
+
+getter @methodDeclaration methodName
+   -> @lstring result
+{
+  result = self.name 
+}
+
+getter @methodDeclaration argList 
+   -> @argumentList result 
+{
+   result = self.arguments
+}
+
+getter @methodDeclaration localMap
+   -> @varDeclarationMap result 
+{
+   result = self.locals
+}
+
+getter @methodDeclaration statmtList
+   -> @statementList result 
+{
+   result = self.statements
+}
+
+
+getter @methodDeclaration argName
+    ?let @argumentList arglist
+    -> @lstringlist result  
+{
+  result = .emptyList
+  for () in arglist do 
+   result += !name
+  end
+}
+
+
+#getter @methodDeclaration argType
+#   ? let @argumentList argList
+#   -> @sdmlTypeList-element result 
+#{
+#   for () in argList do 
+#      result += argList.type
+#   end 
+#}
+

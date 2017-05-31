@@ -8,8 +8,9 @@ message "a source text file with the .leos extension" ?sourceFilePath:@lstring i
 {
   @os os
   grammar leos_grammar in inSourceFile ?os
-
+  log os
   os = [os verify]
+  
   
   if not [option leos_options.dryrun value] then
     @gtlStruct configuration = [os configuration]
