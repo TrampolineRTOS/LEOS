@@ -107,13 +107,363 @@ getter @methodDeclaration argName
   end
 }
 
+#------------------------------------------------------------------------------#
+# StatementTypeName 
+#------------------------------------------------------------------------------#
 
-#getter @methodDeclaration argType
-#   ? let @argumentList argList
-#   -> @sdmlTypeList-element result 
-#{
-#   for () in argList do 
-#      result += argList.type
-#   end 
-#}
+getter @statement  statementTypeName
+    -> @string result 
+{
+   error .here: "the @statement statementsType is not defined": result
+}
+
+override getter @assignStatement statementTypeName 
+    -> @string  
+{
+   result = "assignStatement"
+}
+
+override getter @moveFrontStatement statementTypeName 
+    -> @string  
+{
+   result = "moveFrontStatement"
+}
+
+override getter @moveBackStatement statementTypeName 
+    -> @string  
+{
+   result = "moveBackStatement"
+}
+
+override getter @assignExpressionStatement statementTypeName 
+    -> @string  
+{
+   result = "assignExpressionStatement"
+}
+
+
+override getter @assignAddStatement statementTypeName 
+    -> @string  
+{
+   result = "assignAddStatement"
+}
+
+override getter @assignSubStatement statementTypeName 
+    -> @string  
+{
+   result = "assignSubStatement"
+}
+
+override getter @assignMulStatement statementTypeName 
+    -> @string  
+{
+   result = "assignMulStatement"
+}
+
+override getter @assignDivStatement statementTypeName 
+    -> @string  
+{
+   result = "assignDivStatement"
+}
+
+override getter @assignRemainStatement statementTypeName 
+    -> @string  
+{
+   result = "assignRemainStatement"
+}
+
+override getter @assignAndStatement statementTypeName 
+    -> @string  
+{
+   result = "assignAndStatement"
+}
+
+override getter @assignOrStatement statementTypeName 
+    -> @string  
+{
+   result = "assignOrStatement"
+}
+
+override getter @assignShiftLeftStatement statementTypeName 
+    -> @string  
+{
+   result = "assignShiftLeftStatement"
+}
+
+override getter @assignShiftRightStatement statementTypeName 
+    -> @string  
+{
+   result = "assignShiftRightStatement"
+}
+
+override getter @assignIncStatement statementTypeName 
+    -> @string  
+{
+   result = "assignIncStatement"
+}
+
+override getter @assignDecStatement statementTypeName 
+    -> @string  
+{
+   result = "schedulerMethodStatement"
+}
+
+override getter @schedulerMethodStatement statementTypeName
+    -> @string  
+{
+   result = "schedulerMethodStatement"
+}
+
+override getter @functionCallStatement statementTypeName 
+    -> @string  
+{
+   result = "functionCallStatement"
+}
+
+override getter @ifStatement statementTypeName
+    -> @string  
+{
+   result = "ifStatement"
+}
+
+override getter @moveStatement statementTypeName
+    -> @string  
+{
+   result = "moveStatement"
+}
+
+override getter @startStatement statementTypeName
+    -> @string  
+{
+   result = "startStatement"
+}
+
+override getter @foreachStatement statementTypeName
+    -> @string  
+{
+   result = "foreachStatement"
+}
+
+override getter @moveeachStatement statementTypeName 
+    -> @string  
+{
+   result = "moveeachStatement"
+}
+
+override getter @moveeacheachStatement statementTypeName 
+    -> @string  
+{
+   result = "moveeacheachStatement"
+}
+
+override getter @moveOutStatement statementTypeName 
+    -> @string  
+{
+   result = "moveOutStatement"
+}
+
+#------------------------------------------------------------------------------#
+# ExpressionTypeName 
+#------------------------------------------------------------------------------#
+
+getter @sdmlExpression  expressionTypeName
+    -> @string result 
+{
+   error .here: "the @sdmExpression expressionType is not defined": result
+}
+
+override getter @sdmlValidNode expressionTypeName 
+    -> @string  
+{
+   result = "validNode"
+}
+
+override getter @sdmlEmptyNode expressionTypeName 
+    -> @string  
+{
+   result = "emptyNode"
+}
+
+
+override getter @sdmlUniNode expressionTypeName 
+    -> @string  
+{
+   result = "uniNode"
+}
+
+override getter @sdmlBinNode expressionTypeName 
+    -> @string  
+{
+   result = "binNode"
+}
+
+override getter @sdmlFunctionCallNode expressionTypeName 
+    -> @string  
+{
+   result = "functionCallNode"
+}
+
+override getter @sdmlIntegerNode expressionTypeName 
+    -> @string  
+{
+   result = "integerNode"
+}
+
+override getter @sdmlBoolNode expressionTypeName 
+    -> @string  
+{
+   result = "boolNode"
+}
+
+override getter @sdmlIdentifierNode expressionTypeName 
+    -> @string  
+{
+   result = "identifierNode"
+}
+
+override getter @sdmlMinNode expressionTypeName 
+    -> @string  
+{
+   result = "minNode"
+}
+
+
+override getter @sdmlMaxNode expressionTypeName 
+    -> @string  
+{
+   result = "maxNode"
+}
+
+
+override getter @sdmlSubExprNode expressionTypeName 
+    -> @string  
+{
+   result = "subExprNode"
+}
+
+
+override getter @sdmlNotNode expressionTypeName 
+    -> @string  
+{
+   result = "notNode"
+}
+
+override getter @sdmlCompNode expressionTypeName 
+    -> @string  
+{
+   result = "compNode"
+}
+
+override getter @sdmlEqualNode expressionTypeName 
+    -> @string  
+{
+   result = "equalNode"
+}
+
+override getter @sdmlDifferNode expressionTypeName 
+    -> @string  
+{
+   result = "differNode"
+}
+
+override getter @sdmlLowerEqualNode expressionTypeName 
+    -> @string  
+{
+   result = "lowerEqualNode"
+}
+
+override getter @sdmlGreaterEqualNode expressionTypeName 
+    -> @string  
+{
+   result = "greaterEqualNode"
+}
+
+override getter @sdmlLowerNode expressionTypeName 
+    -> @string  
+{
+   result = "lowerNode"
+}
+
+override getter @sdmlGreaterNode expressionTypeName 
+    -> @string  
+{
+   result = "greaterNode"
+}
+
+
+override getter @sdmlAndNode expressionTypeName 
+    -> @string  
+{
+   result = "andNode"
+}
+
+override getter @sdmlOrNode expressionTypeName 
+    -> @string  
+{
+   result = "orNode"
+}
+
+
+override getter @sdmlXorNode expressionTypeName 
+    -> @string  
+{
+   result = "xorNode"
+}
+
+override getter @sdmlShiftLeftNode expressionTypeName 
+    -> @string  
+{
+   result = "shiftLeftNode"
+}
+
+override getter @sdmlShiftRightNode expressionTypeName 
+    -> @string  
+{
+   result = "shiftRightNode"
+}
+
+override getter @sdmlAndAndNode expressionTypeName 
+    -> @string  
+{
+   result = "andAndNode"
+}
+
+override getter @sdmlOrOrNode expressionTypeName 
+    -> @string  
+{
+   result = "orOrNode"
+}
+
+
+override getter @sdmlAddNode expressionTypeName 
+    -> @string  
+{
+   result = "addNode"
+}
+
+
+override getter @sdmlSubNode expressionTypeName 
+    -> @string  
+{
+   result = "subNode"
+}
+
+override getter @sdmlMulNode expressionTypeName 
+    -> @string  
+{
+   result = "mulNode"
+}
+
+override getter @sdmlDivNode expressionTypeName 
+    -> @string  
+{
+   result = "divNode"
+}
+
+override getter @sdmlRemainNode expressionTypeName 
+    -> @string  
+{
+   result = "remainNode"
+}
+
 
