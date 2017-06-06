@@ -666,7 +666,7 @@ override getter @shiftRightNode sdmlExpression
 {
   @sdmlExpression leftExpr
   @sdmlExpression rightExpr
-  [self binSameTypeAndNumberAndUnsigned !os !"'<<'" ?leftExpr ?rightExpr]
+  [self binSameTypeAndNumberAndUnsigned !os !"'>>'" ?leftExpr ?rightExpr]
   outExpr = @sdmlShiftRightNode.new{!loc ![leftExpr type] !leftExpr !rightExpr}
 }
 

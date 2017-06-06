@@ -3,16 +3,16 @@
 #------------------------------------------------------------------------------#
 
 abstract class @node {
-   @lstring nodeName
-   @lstring nodeId
+   @string nodeName
+   @string nodeId
 }
 
 class @transition {
-      @lstring sourceNode
-      @lstring targetNode
-      @lstring guard
-      @lstring synchronisation
-      @lstring update 
+      @string sourceNode
+      @string targetNode
+      @string guard
+      @string synchronisation
+      @string update 
 }
 
 class @if_node : @node {
@@ -118,352 +118,671 @@ getter @statement  statementTypeName
 }
 
 override getter @assignStatement statementTypeName 
-    -> @string  
+    -> @string result
 {
    result = "assignStatement"
 }
 
 override getter @moveFrontStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "moveFrontStatement"
 }
 
 override getter @moveBackStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "moveBackStatement"
 }
 
 override getter @assignExpressionStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignExpressionStatement"
 }
 
 
 override getter @assignAddStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignAddStatement"
 }
 
 override getter @assignSubStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignSubStatement"
 }
 
 override getter @assignMulStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignMulStatement"
 }
 
 override getter @assignDivStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignDivStatement"
 }
 
 override getter @assignRemainStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignRemainStatement"
 }
 
 override getter @assignAndStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignAndStatement"
 }
 
 override getter @assignOrStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignOrStatement"
 }
 
 override getter @assignShiftLeftStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignShiftLeftStatement"
 }
 
 override getter @assignShiftRightStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignShiftRightStatement"
 }
 
 override getter @assignIncStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "assignIncStatement"
 }
 
 override getter @assignDecStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "schedulerMethodStatement"
 }
 
 override getter @schedulerMethodStatement statementTypeName
-    -> @string  
+    -> @string result 
 {
    result = "schedulerMethodStatement"
 }
 
 override getter @functionCallStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "functionCallStatement"
 }
 
 override getter @ifStatement statementTypeName
-    -> @string  
+    -> @string result 
 {
    result = "ifStatement"
 }
 
 override getter @moveStatement statementTypeName
-    -> @string  
+    -> @string result  
 {
    result = "moveStatement"
 }
 
 override getter @startStatement statementTypeName
-    -> @string  
+    -> @string result 
 {
    result = "startStatement"
 }
 
 override getter @foreachStatement statementTypeName
-    -> @string  
+    -> @string result 
 {
    result = "foreachStatement"
 }
 
 override getter @moveeachStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "moveeachStatement"
 }
 
 override getter @moveeacheachStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "moveeacheachStatement"
 }
 
 override getter @moveOutStatement statementTypeName 
-    -> @string  
+    -> @string result 
 {
    result = "moveOutStatement"
 }
 
 #------------------------------------------------------------------------------#
-# ExpressionTypeName 
+# automaton state and transition creation from a statement 
 #------------------------------------------------------------------------------#
 
-getter @sdmlExpression  expressionTypeName
-    -> @string result 
+#------------ sdmlExpression getter (object to string convertin) --------------#
+getter @sdmlExpression objToString
+  ->@string result 
 {
    error .here: "the @sdmExpression expressionType is not defined": result
 }
 
-override getter @sdmlValidNode expressionTypeName 
-    -> @string  
+override getter @sdmlIntegerNode objToString
+  ->@string result 
 {
-   result = "validNode"
+   result = [integerValue string]
 }
 
-override getter @sdmlEmptyNode expressionTypeName 
-    -> @string  
+override getter @sdmlBoolNode objToString
+  ->@string result 
 {
-   result = "emptyNode"
+   result = [boolValue cString]
 }
 
-
-override getter @sdmlUniNode expressionTypeName 
-    -> @string  
+override getter @sdmlIdentifierNode objToString
+  ->@string result
 {
-   result = "uniNode"
+   result = [identifierValue string]
 }
 
-override getter @sdmlBinNode expressionTypeName 
-    -> @string  
+override getter @sdmlEqualNode objToString 
+  ->@string result 
 {
-   result = "binNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "==" + rightExpString
 }
 
-override getter @sdmlFunctionCallNode expressionTypeName 
-    -> @string  
+override getter @sdmlDifferNode objToString 
+  ->@string result 
 {
-   result = "functionCallNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "!=" + rightExpString
 }
 
-override getter @sdmlIntegerNode expressionTypeName 
-    -> @string  
+override getter @sdmlLowerEqualNode objToString
+  ->@string result 
 {
-   result = "integerNode"
-}
-
-override getter @sdmlBoolNode expressionTypeName 
-    -> @string  
-{
-   result = "boolNode"
-}
-
-override getter @sdmlIdentifierNode expressionTypeName 
-    -> @string  
-{
-   result = "identifierNode"
-}
-
-override getter @sdmlMinNode expressionTypeName 
-    -> @string  
-{
-   result = "minNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "<=" + rightExpString
 }
 
 
-override getter @sdmlMaxNode expressionTypeName 
-    -> @string  
+override getter @sdmlGreaterEqualNode objToString
+  ->@string result 
 {
-   result = "maxNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + ">=" + rightExpString
+}
+
+override getter @sdmlLowerNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "<" + rightExpString
+}
+
+override getter @sdmlGreaterNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + ">" + rightExpString
 }
 
 
-override getter @sdmlSubExprNode expressionTypeName 
-    -> @string  
+
+override getter @sdmlAndNode objToString
+  ->@string result 
 {
-   result = "subExprNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "&" + rightExpString
 }
 
 
-override getter @sdmlNotNode expressionTypeName 
-    -> @string  
+override getter @sdmlOrNode objToString
+  ->@string result 
 {
-   result = "notNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "|" + rightExpString
 }
 
-override getter @sdmlCompNode expressionTypeName 
-    -> @string  
+override getter @sdmlXorNode objToString
+  ->@string result 
 {
-   result = "compNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "^" + rightExpString
 }
 
-override getter @sdmlEqualNode expressionTypeName 
-    -> @string  
+override getter @sdmlShiftLeftNode objToString
+  ->@string result 
 {
-   result = "equalNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "<<" + rightExpString
 }
 
-override getter @sdmlDifferNode expressionTypeName 
-    -> @string  
+override getter @sdmlShiftRightNode objToString
+  ->@string result 
 {
-   result = "differNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + ">>" + rightExpString
 }
 
-override getter @sdmlLowerEqualNode expressionTypeName 
-    -> @string  
+override getter @sdmlAndAndNode objToString
+  ->@string result 
 {
-   result = "lowerEqualNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "&&" + rightExpString
 }
 
-override getter @sdmlGreaterEqualNode expressionTypeName 
-    -> @string  
+override getter @sdmlOrOrNode objToString
+  ->@string result 
 {
-   result = "greaterEqualNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "||" + rightExpString
 }
 
-override getter @sdmlLowerNode expressionTypeName 
-    -> @string  
+override getter @sdmlAddNode objToString
+  ->@string result 
 {
-   result = "lowerNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "+" + rightExpString
 }
 
-override getter @sdmlGreaterNode expressionTypeName 
-    -> @string  
+override getter @sdmlSubNode objToString
+  ->@string result 
 {
-   result = "greaterNode"
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "-" + rightExpString
+}
+
+override getter @sdmlMulNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "*" + rightExpString
+}
+
+override getter @sdmlDivNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "/" + rightExpString
+}
+
+override getter @sdmlRemainNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "%" + rightExpString
+}
+
+#override getter @sdmlFunctionCallNode objToString
+#  ->@string result
+#{
+#  
+#}
+
+
+#--------- Method for states and transitions creation from statements ---------#
+
+method @statement  statementToAutomaton
+    ?let @os unused os
+    ?!@transition unused transA
+    ?!@transition unused tranSB
+    ?!@seq_node unused seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
+{
+ error .here: "the @statement sdmlStatement is not defined"
 }
 
 
-override getter @sdmlAndNode expressionTypeName 
-    -> @string  
+override method @assignExpressionStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
 {
-   result = "andNode"
-}
-
-override getter @sdmlOrNode expressionTypeName 
-    -> @string  
-{
-   result = "orNode"
-}
-
-
-override getter @sdmlXorNode expressionTypeName 
-    -> @string  
-{
-   result = "xorNode"
-}
-
-override getter @sdmlShiftLeftNode expressionTypeName 
-    -> @string  
-{
-   result = "shiftLeftNode"
-}
-
-override getter @sdmlShiftRightNode expressionTypeName 
-    -> @string  
-{
-   result = "shiftRightNode"
-}
-
-override getter @sdmlAndAndNode expressionTypeName 
-    -> @string  
-{
-   result = "andAndNode"
-}
-
-override getter @sdmlOrOrNode expressionTypeName 
-    -> @string  
-{
-   result = "orOrNode"
+   @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "=" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
 }
 
 
-override getter @sdmlAddNode expressionTypeName 
-    -> @string  
+override method @assignAddStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
 {
-   result = "addNode"
+  @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "+=" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
+}
+
+override method @assignSubStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
+{
+  @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "-=" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
+}
+
+override method @assignMulStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
+{
+  @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "*=" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
+}
+
+override method @assignDivStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
+{
+  @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "/=" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
+}
+
+override method @assignRemainStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
+{
+  @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "%=" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
 }
 
 
-override getter @sdmlSubNode expressionTypeName 
-    -> @string  
+override method @assignAndStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
 {
-   result = "subNode"
+  @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "&=" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
 }
 
-override getter @sdmlMulNode expressionTypeName 
-    -> @string  
+override method @assignOrStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
 {
-   result = "mulNode"
+  @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "|=" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
 }
 
-override getter @sdmlDivNode expressionTypeName 
-    -> @string  
+override method @assignShiftLeftStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
 {
-   result = "divNode"
+  @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "<<" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
 }
 
-override getter @sdmlRemainNode expressionTypeName 
-    -> @string  
+override method @assignShiftRightStatement statementToAutomaton
+    ?let @os os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
 {
-   result = "remainNode"
+  @string ident = [identifier string]
+   @location locs = loc
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + ">>" + expString}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
 }
 
+
+override method @assignIncStatement statementToAutomaton
+    ?let @os unused os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
+{
+  @string ident = [identifier string]
+   @location locs = loc
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "++"}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
+}
+
+
+override method @assignDecStatement statementToAutomaton
+    ?let @os unused os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
+{
+  @string ident = [identifier string]
+   @location locs = loc
+   
+   transA = @transition.new {!" " !" " !" " !" "  !ident + "--"}
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
+}
+
+
+override method @functionCallStatement statementToAutomaton
+    ?let @os unused os
+    ?!@transition transA
+    ?!@transition unused transB
+    ?!@seq_node  seqNode
+    ?!@if_node unused ifNode
+    ?!@loop_node unused loopNode
+{
+   @string functionName = [funcName string]
+   @location locs = loc
+   transA = @transition.new {!" " !" " !" " !functionName +"(" +")"  !""} # à compléter 
+   seqNode = @seq_node.new{!" " !" " !transA}
+   #Encore des lignes de codes à ajouter
+}
+
+override method @ifStatement statementToAutomaton
+    ?let @os  os
+    ?!@transition transA
+    ?!@transition transB
+    ?!@seq_node   seqNode
+    ?!@if_node    ifNode
+    ?!@loop_node  loopNode
+{   
+    @sdmlExpression ifCondition = [condition sdmlExpression !os]
+    @string ifConditionString = [ifCondition objToString]
+    
+    transA = @transition.new {!" " !" " !ifConditionString !""  !""} # à compléter 
+    transB = @transition.new {!" " !" " !"!"+ifConditionString !"" !""} # à compléter
+    ifNode = @if_node.new{!" " !"" !transA !transB}
+    
+    for () in trueStatements do
+     [statement statementToAutomaton !os !? transA !? transB !? seqNode !?ifNode !?loopNode]
+    end
+    
+    for () in falseStatements do
+      [statement statementToAutomaton !os !? transA !? transB !? seqNode !?ifNode !?loopNode]
+    end
+    
+   #Encore des lignes de codes à ajouter
+}
+
+
+override method @ifStatement statementToAutomaton
+    ?let @os  os
+    ?!@transition transA
+    ?!@transition transB
+    ?!@seq_node   seqNode
+    ?!@if_node    ifNode
+    ?!@loop_node  loopNode
+{   
+
+}
 
