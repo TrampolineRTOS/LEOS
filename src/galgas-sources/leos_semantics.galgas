@@ -779,11 +779,11 @@ class @assignDecStatement : @assignStatement {}
 class @schedulerMethodStatement : @statement { @lstring scheduler @lstring methodName @argumentCallList arguments }
 class @functionCallStatement : @statement { @lstring funcName @expressionList arguments }
 class @ifStatement : @statement { @expression condition @statementList trueStatements @statementList falseStatements }
-class @moveStatement : @statement { @lstringlist source @migrationDestination destination }
-class @startStatement : @statement { @lstringlist timer @expression delay @bool periodic @lstringlist methodName }
-class @foreachStatement : @statement { @itemAndContainerList iteration @statementList statements}
-class @moveeachStatement : @statement { @lstringlist srcItem @lstringlist srcContainer @migrationDestination destination @expression whileCondition }
-class @moveeacheachStatement : @statement { @lstringlist srcItem @lstringlist srcContainer @lstring dstItem @lstringlist dstContainer @expression whileCondition }
+#class @moveStatement : @statement { @lstringlist source @migrationDestination destination }
+#class @startStatement : @statement { @lstringlist timer @expression delay @bool periodic @lstringlist methodName }
+#class @foreachStatement : @statement { @itemAndContainerList iteration @statementList statements}
+#class @moveeachStatement : @statement { @lstringlist srcItem @lstringlist srcContainer @migrationDestination destination @expression whileCondition }
+#class @moveeacheachStatement : @statement { @lstringlist srcItem @lstringlist srcContainer @lstring dstItem @lstringlist dstContainer @expression whileCondition }
 class @moveOutStatement : @assignStatement { @lstring nextState }
 
 list @itemAndContainerList {
@@ -1027,21 +1027,21 @@ override getter @ifStatement sdmlStatement
   end
 }
 
-override getter @moveStatement sdmlStatement
-  ?let @os os
-  ?let @lstring unused parent
-  -> @sdmlStatement outStatement
-{
-  @sdmlType sourceType = [[os varDeclarations] identifierType !source !os]
-#  log sourceType
-  # the source must be a task
-  if [sourceType dynamicType] != `@sdmlTaskRef & [sourceType dynamicType] != `@sdmlTaskContainer then
-    error loc: "source of a 'move ... to ...' statement must be a task reference type": outStatement
-  else
-    [destination checkSource !os !source]
-    outStatement = @sdmlMoveStatement.new{!loc !source !destination}
-  end
-}
+#override getter @moveStatement sdmlStatement
+#  ?let @os os
+#?let @lstring unused parent
+#  -> @sdmlStatement outStatement
+#{
+#  @sdmlType sourceType = [[os varDeclarations] identifierType !source !os]
+##  log sourceType
+#  # the source must be a task
+#  if [sourceType dynamicType] != `@sdmlTaskRef & [sourceType dynamicType] != `@sdmlTaskContainer then
+#    error loc: "source of a 'move ... to ...' statement must be a task reference type": outStatement
+#  else
+#    [destination checkSource !os !source]
+#    outStatement = @sdmlMoveStatement.new{!loc !source !destination}
+#  end
+#}
 
 #-----------------------------------------------------------------------------
 # For a @methodStatement verify the method exists
@@ -1084,26 +1084,26 @@ getter @lstringlist string ->@string st{
   end
 }
 
-override getter @startStatement sdmlStatement
-  ?let @os os
-  ?let @lstring unused parent
-  -> @sdmlStatement outStatement
-{
-  # check the timer
-  if [[[os varDeclarations] identifierType !timer !os] dynamicType] != `@sdmlTimer then
-    error [timer location]: [timer string]+ " is not a timer"
-  end
-  
-  # check the method
-  
-  # check the delay
-  @sdmlExpression sdmlDelay = [delay sdmlExpression !os]
-  if [[sdmlDelay type] dynamicType] == `@sdmlUnsigned then
-    outStatement = @sdmlStartStatement.new{!loc !timer !sdmlDelay !periodic !methodName}
-  else
-    error [sdmlDelay loc]: "Unsigned expression expected": outStatement
-  end
-}
+#override getter @startStatement sdmlStatement
+#  ?let @os os
+#  ?let @lstring unused parent
+#  -> @sdmlStatement outStatement
+#{
+#  # check the timer
+#  if [[[os varDeclarations] identifierType !timer !os] dynamicType] != `@sdmlTimer then
+#    error [timer location]: [timer string]+ " is not a timer"
+#  end
+#  
+#  # check the method
+#  
+#  # check the delay
+#  @sdmlExpression sdmlDelay = [delay sdmlExpression !os]
+#  if [[sdmlDelay type] dynamicType] == `@sdmlUnsigned then
+#    outStatement = @sdmlStartStatement.new{!loc !timer !sdmlDelay !periodic !methodName}
+#  else
+#    error [sdmlDelay loc]: "Unsigned expression expected": outStatement
+#  end
+#}
 
 #-----------------------------------------------------------------------------
 # For a @foreachStatement the following is checked
@@ -1115,110 +1115,110 @@ list @sdmlItemAndContainerList {
   @sdmlExpression where
 }
 
-override getter @foreachStatement sdmlStatement
-  ?let @os os
-  ?let @lstring parent
-  -> @sdmlStatement outStatement
-{
-  # check the containers type and add the items in a varDeclarationMap
-  @varDeclarationMap localMap = @varDeclarationMap.mapWithMapToOverride{![os varDeclarations]}
-  @sdmlItemAndContainerList verifiedIteration = .emptyList
-  for () in iteration do
-    @sdmlType containerType = [[os varDeclarations] identifierType !container !os]
-    if not [containerType isCollection] then
-      error [container location]: [container string]+" is not a queue type"
-    else
-      @varDeclarationMap iterationLocalMap = @varDeclarationMap.mapWithMapToOverride{![os varDeclarations]}
-      [!?iterationLocalMap putData !item !@refVar.new{!item ![containerType itemType !os] !rwAccess()}]
-      @os osWithIterationLocals = @os.new{![os name] ![os typeDeclarations] !iterationLocalMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]}
-      @sdmlExpression verifiedWhere = [where sdmlExpression !osWithIterationLocals]
-      # check the type
-      if [[verifiedWhere type] dynamicType] != `@sdmlBool then
-        error [verifiedWhere loc]: "Boolean expression expected"
-      end
-      verifiedIteration += !item !container !verifiedWhere
-      [!?localMap putData !item !@refVar.new{!item ![containerType itemType !os] !rwAccess()}]
-    end
-  end
-  @statementList verifiedStatements = .emptyList
-  @os osWithLocals = @os.new{![os name] ![os typeDeclarations] !localMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]}
-  for () in statements do
-    @sdmlStatement verifiedStatement = [statement sdmlStatement !osWithLocals !parent]
-    verifiedStatements += !verifiedStatement
-  end
-  outStatement = @sdmlForeachStatement.new{!loc !verifiedIteration !verifiedStatements}
-}
+#override getter @foreachStatement sdmlStatement
+#  ?let @os os
+#  ?let @lstring parent
+#  -> @sdmlStatement outStatement
+#{
+#  # check the containers type and add the items in a varDeclarationMap
+#  @varDeclarationMap localMap = @varDeclarationMap.mapWithMapToOverride{![os varDeclarations]}
+#  @sdmlItemAndContainerList verifiedIteration = .emptyList
+#  for () in iteration do
+#    @sdmlType containerType = [[os varDeclarations] identifierType !container !os]
+#    if not [containerType isCollection] then
+#      error [container location]: [container string]+" is not a queue type"
+#    else
+# #      @varDeclarationMap iterationLocalMap = @varDeclarationMap.mapWithMapToOverride{![os varDeclarations]}
+#    [!?iterationLocalMap putData !item !@refVar.new{!item ![containerType itemType !os] !rwAccess()}]
+#      @os osWithIterationLocals = @os.new{![os name] ![os typeDeclarations] !iterationLocalMap ![os #funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]}
+#      @sdmlExpression verifiedWhere = [where sdmlExpression !osWithIterationLocals]
+#      # check the type
+#      if [[verifiedWhere type] dynamicType] != `@sdmlBool then
+#        error [verifiedWhere loc]: "Boolean expression expected"
+#      end
+#      verifiedIteration += !item !container !verifiedWhere
+#      [!?localMap putData !item !@refVar.new{!item ![containerType itemType !os] !rwAccess()}]
+#    end
+#  end
+#  @statementList verifiedStatements = .emptyList
+#  @os osWithLocals = @os.new{![os name] ![os typeDeclarations] !localMap ![os funcDeclarations] ![os #schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]}
+#  for () in statements do
+#    @sdmlStatement verifiedStatement = [statement sdmlStatement !osWithLocals !parent]
+#    verifiedStatements += !verifiedStatement
+#  end
+#  outStatement = @sdmlForeachStatement.new{!loc !verifiedIteration !verifiedStatements}
+#}
 
 #-----------------------------------------------------------------------------
 # For a @moveachStatement
 #-----------------------------------------------------------------------------
-override getter @moveeachStatement sdmlStatement
-  ?let @os os
-  ?let @lstring unused parent
-  -> @sdmlStatement outStatement
-{
-  # Check the source of the moveeach, it should be a container
-  @sdmlType srcContainerType = [[os varDeclarations] identifierType !srcContainer !os]
-  if not [srcContainerType isCollection] then
-    error [srcContainer location]: [srcContainer string]+" is not a queue type": outStatement
-  else
-    # it is a container, so check the srcWhere expression
-    @varDeclarationMap iterationLocalMap = @varDeclarationMap.mapWithMapToOverride{![os varDeclarations]}
-    # the first identifier of the srcItem is the item of the container
-    # the second identifier is the running attribute
-    @lstring primaryIdentifier
-    [srcItem first ?primaryIdentifier]
-    [!?iterationLocalMap putData !primaryIdentifier !@refVar.new{!primaryIdentifier ![srcContainerType itemType !os] !roAccess()}]
-    @os osWithIterationLocals = @os.new{![os name] ![os typeDeclarations] !iterationLocalMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]}
-    @sdmlExpression verifiedCondition = [whileCondition sdmlExpression !osWithIterationLocals]
-    # check the type
-    if [[verifiedCondition type] dynamicType] != `@sdmlBool then
-      error [verifiedCondition loc]: "Boolean expression expected": outStatement
-    else
-      # check the destination of the to, it should a container to
-      [destination checkSource !osWithIterationLocals !srcItem]
-      outStatement = @sdmlMoveeachStatement.new{!loc !srcItem !srcContainer !destination !verifiedCondition}
-    end
-  end    
-}
+#override getter @moveeachStatement sdmlStatement
+#  ?let @os os
+#  ?let @lstring unused parent
+#  -> @sdmlStatement outStatement
+#{
+#  # Check the source of the moveeach, it should be a container
+#  @sdmlType srcContainerType = [[os varDeclarations] identifierType !srcContainer !os]
+#  if not [srcContainerType isCollection] then
+#    error [srcContainer location]: [srcContainer string]+" is not a queue type": outStatement
+#  else
+#    # it is a container, so check the srcWhere expression
+#    @varDeclarationMap iterationLocalMap = @varDeclarationMap.mapWithMapToOverride{![os varDeclarations]}
+#    # the first identifier of the srcItem is the item of the container
+#    # the second identifier is the running attribute
+#    @lstring primaryIdentifier
+#    [srcItem first ?primaryIdentifier]
+#    [!?iterationLocalMap putData !primaryIdentifier !@refVar.new{!primaryIdentifier ![srcContainerType itemType !#os] !roAccess()}]
+#    @os osWithIterationLocals = @os.new{![os name] ![os typeDeclarations] !iterationLocalMap ![os #funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]}
+#    @sdmlExpression verifiedCondition = [whileCondition sdmlExpression !osWithIterationLocals]
+#    # check the type
+#    if [[verifiedCondition type] dynamicType] != `@sdmlBool then
+#      error [verifiedCondition loc]: "Boolean expression expected": outStatement
+#    else
+#      # check the destination of the to, it should a container to
+#      [destination checkSource !osWithIterationLocals !srcItem]
+#      outStatement = @sdmlMoveeachStatement.new{!loc !srcItem !srcContainer !destination !verifiedCondition}
+#    end
+#  end    
+#}
 
 #-----------------------------------------------------------------------------
 # For a @moveachStatement
 #-----------------------------------------------------------------------------
-override getter @moveeacheachStatement sdmlStatement
-  ?let @os os
-  ?let @lstring unused parent
-  -> @sdmlStatement outStatement
-{
-  # Check the source of the moveeach, it should be a container
-  @sdmlType srcContainerType = [[os varDeclarations] identifierType !srcContainer !os]
-  if not [srcContainerType isCollection] then
-    error [srcContainer location]: [srcContainer string]+" is not a queue type": outStatement
-  else
-    # it is a container
-    @varDeclarationMap iterationLocalMap = @varDeclarationMap.mapWithMapToOverride{![os varDeclarations]}
-    # the first identifier of the srcItem is the item of the container
-    # the second identifier is the running attribute
-    @lstring primaryIdentifier
-    [srcItem first ?primaryIdentifier]
-    [!?iterationLocalMap putData !primaryIdentifier !@refVar.new{!primaryIdentifier ![srcContainerType itemType !os] !roAccess()}]
-    # check the destination of the toeach, it should a container to
-    @sdmlType dstContainerType = [[os varDeclarations] identifierType !dstContainer !os]
-    if not [dstContainerType isCollection] then
-      error [dstContainer location]: [dstContainer string]+" is not a queue type": outStatement
-    else
-      [!?iterationLocalMap putData !dstItem !@refVar.new{!dstItem ![dstContainerType itemType !os] !roAccess()}]
-      @os osWithIterationLocals = @os.new{![os name] ![os typeDeclarations] !iterationLocalMap ![os funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]}
-      @sdmlExpression verifiedCondition = [whileCondition sdmlExpression !osWithIterationLocals]
-      # check the type
-      if [[verifiedCondition type] dynamicType] != `@sdmlBool then
-        error [verifiedCondition loc]: "Boolean expression expected": outStatement
-      else
-          outStatement = @sdmlMoveeacheachStatement.new{!loc !srcItem !srcContainer !dstItem !dstContainer !verifiedCondition}
-      end
-    end
-  end    
-}
+#override getter @moveeacheachStatement sdmlStatement
+#  ?let @os os
+#  ?let @lstring unused parent
+#  -> @sdmlStatement outStatement
+#{
+## Check the source of the moveeach, it should be a container
+#  @sdmlType srcContainerType = [[os varDeclarations] identifierType !srcContainer !os]
+#  if not [srcContainerType isCollection] then
+#    error [srcContainer location]: [srcContainer string]+" is not a queue type": outStatement
+#  else
+#  # it is a container
+#    @varDeclarationMap iterationLocalMap = @varDeclarationMap.mapWithMapToOverride{![os varDeclarations]}
+#    # the first identifier of the srcItem is the item of the container
+#    # the second identifier is the running attribute
+#    @lstring primaryIdentifier
+#    [srcItem first ?primaryIdentifier]
+#    [!?iterationLocalMap putData !primaryIdentifier !@refVar.new{!primaryIdentifier ![srcContainerType itemType !#os] !roAccess()}]
+#    # check the destination of the toeach, it should a container to
+#    @sdmlType dstContainerType = [[os varDeclarations] identifierType !dstContainer !os]
+#    if not [dstContainerType isCollection] then
+#      error [dstContainer location]: [dstContainer string]+" is not a queue type": outStatement
+#    else
+#      [!?iterationLocalMap putData !dstItem !@refVar.new{!dstItem ![dstContainerType itemType !os] !roAccess()}]
+#      @os osWithIterationLocals = @os.new{![os name] ![os typeDeclarations] !iterationLocalMap ![os #funcDeclarations] ![os schedulerDeclarations] ![os transDeclarations] ![os backendDeclarations]}
+#      @sdmlExpression verifiedCondition = [whileCondition sdmlExpression !osWithIterationLocals]
+#      # check the type
+#      if [[verifiedCondition type] dynamicType] != `@sdmlBool then
+#        error [verifiedCondition loc]: "Boolean expression expected": outStatement
+#      else
+#          outStatement = @sdmlMoveeacheachStatement.new{!loc !srcItem !srcContainer !dstItem !dstContainer !#verifiedCondition}
+#      end
+#    end
+#  end    
+#}
 
 override getter @functionCallStatement sdmlStatement
   ?let @os os

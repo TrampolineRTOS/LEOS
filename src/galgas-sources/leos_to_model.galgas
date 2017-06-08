@@ -2,68 +2,100 @@
 #                       Model generation from leos                             #      
 #------------------------------------------------------------------------------#
 
-abstract class @node {
-   @string nodeName
-   @string nodeId
+class @automatonNode {
+  @string name 
 }
 
-class @transition {
-      @string sourceNode
-      @string targetNode
-      @string guard
-      @string synchronisation
-      @string update 
+class @automatonTransition{
+  @automatonNode source 
+  @automatonNode target
+  @string guard
+  @string synchronisation
+  @string assignment 
 }
 
-class @if_node : @node {
-      @transition thenTransition 
-      @transition elseTransition
-}
- 
-class @loop_node : @node {
-      @transition trueTransition 
-      @transition falseTransition
+list @automatonNodeList { 
+  @automatonNode node
 }
 
-class @seq_node : @node {
-      @transition outTransition 
-}
- 
-map @if_nodeMap {
-    @if_node if_node
-    insert insertKey error message "the '%K' key is already declared in %L"
-    search searchKey error message "the '%K' key is not defined"
-    remove removeKey error message "the '%K' key is not defined"
-}
-
-map @loop_nodeMap {
-    @loop_node loop_node
-    insert insertKey error message "the '%K' key is already declared in %L"
-    search searchKey error message "the '%K' key is not defined"
-    remove removeKey error message "the '%K' key is not defined"
-}
-
-map @seq_nodeMap {
-    @seq_node seq_node
-    insert insertKey error message "the '%K' key is already declared in %L"
-    search searchKey error message "the '%K' key is not defined"
-    remove removeKey error message "the '%K' key is not defined"
-}
-
-map @transitionMap {
-    @transition transition
-    insert insertKey error message "the '%K' key is already declared in %L"
-    search searchKey error message "the '%K' key is not defined"
-    remove removeKey error message "the '%K' key is not defined"
+list @automatonTransitionList {
+  @automatonTransition transition
 }
 
 class @automaton {
-      @lstring name 
-      @if_nodeMap ifNodeMap
-      @loop_nodeMap loopNodeMap
-      @seq_nodeMap seqNodeMap
-      @transitionMap transitionMap
+  @string name
+  @automatonNode initNode
+  @automatonNodeList nodeList
+  @automatonTransitionList transitionList
 }
+
+List @automatonList {
+  @automaton automaton
+}
+
+
+#abstract class @node {
+# @string nodeName
+#   @string nodeId
+#}
+
+#class @transition {
+#      @string sourceNode
+#      @string targetNode
+#      @string guard
+#      @string synchronisation
+#      @string update 
+#}
+
+#class @if_node : @node {
+#      @transition thenTransition 
+#      @transition elseTransition
+#}
+# 
+#class @loop_node : @node {
+#      @transition trueTransition 
+#      @transition falseTransition
+#}
+# 
+#class automatonNode : @node {
+#      @transition outTransition 
+#}
+# 
+#map @if_nodeMap {
+#    @if_node if_node
+#    insert insertKey error message "the '%K' key is already declared in %L"
+#    search searchKey error message "the '%K' key is not defined"
+#    remove removeKey error message "the '%K' key is not defined"
+#}
+# 
+#map @loop_nodeMap {
+#    @loop_node loop_node
+#    insert insertKey error message "the '%K' key is already declared in %L"
+#    search searchKey error message "the '%K' key is not defined"
+#    remove removeKey error message "the '%K' key is not defined"
+#}
+# 
+#map automatonNodeMap {
+#    automatonNode seq_node
+#    insert insertKey error message "the '%K' key is already declared in %L"
+#    search searchKey error message "the '%K' key is not defined"
+#    remove removeKey error message "the '%K' key is not defined"
+#}
+# 
+#map @transitionMap {
+#    @transition transition
+#    insert insertKey error message "the '%K' key is already declared in %L"
+#    search searchKey error message "the '%K' key is not defined"
+#    remove removeKey error message "the '%K' key is not defined"
+#}
+#
+#class @automaton {
+#      @lstring name 
+#      @if_nodeMap nodMap
+#      @loop_nodeMap nodMap
+#      automatonNodeMap nodMap
+#      @transitionMap transitionMap
+#}
 
 
 getter @schedulerDeclaration allMethods  
@@ -226,41 +258,41 @@ override getter @ifStatement statementTypeName
    result = "ifStatement"
 }
 
-override getter @moveStatement statementTypeName
-    -> @string result  
-{
-   result = "moveStatement"
-}
+#override getter @moveStatement statementTypeName
+#    -> @string result  
+#{
+#   result = "moveStatement"
+#}
 
-override getter @startStatement statementTypeName
-    -> @string result 
-{
-   result = "startStatement"
-}
+#override getter @startStatement statementTypeName
+#    -> @string result 
+#{
+#   result = "startStatement"
+#}
 
-override getter @foreachStatement statementTypeName
-    -> @string result 
-{
-   result = "foreachStatement"
-}
+#override getter @foreachStatement statementTypeName
+#    -> @string result 
+#{
+#   result = "foreachStatement"
+#}
 
-override getter @moveeachStatement statementTypeName 
-    -> @string result 
-{
-   result = "moveeachStatement"
-}
+#override getter @moveeachStatement statementTypeName 
+#    -> @string result 
+#{
+#   result = "moveeachStatement"
+#}
 
-override getter @moveeacheachStatement statementTypeName 
-    -> @string result 
-{
-   result = "moveeacheachStatement"
-}
+#override getter @moveeacheachStatement statementTypeName 
+#    -> @string result 
+#{
+#   result = "moveeacheachStatement"
+#}
 
-override getter @moveOutStatement statementTypeName 
-    -> @string result 
-{
-   result = "moveOutStatement"
-}
+#override getter @moveOutStatement statementTypeName 
+#    -> @string result 
+#{
+#   result = "moveOutStatement"
+#}
 
 #------------------------------------------------------------------------------#
 # automaton state and transition creation from a statement 
@@ -486,303 +518,462 @@ override getter @sdmlRemainNode objToString
 
 method @statement  statementToAutomaton
     ?let @os unused os
-    ?!@transition unused transA
-    ?!@transition unused tranSB
-    ?!@seq_node unused seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
- error .here: "the @statement sdmlStatement is not defined"
+ error .here: "the @statement sdmlStatement is not defined":nodeList
+ error .here : "toto":transitList
+}
+
+override method @moveFrontStatement statementToAutomaton
+    ?let @os unused os
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
+{ 
+   nodeList = .emptyList
+   transitList = .emptyList
+
+   @string ident = [identifier string]
+   @string destinationString = [destination string]
+   @string locString = [loc line]
+   @automatonNode null = @automatonNode.new{!""}
+   @automatonNode nod = @automatonNode.new{!locString}  
+   @automatonTransition trans = @automatonTransition.new {!nod !null  !" " !" "  !ident + "->" + destinationString}
+   nodeList += !nod
+   transitList += !trans
+
+   #Encore des lignes de codes à ajouter
 }
 
 
-override method @assignExpressionStatement statementToAutomaton
-    ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+override method @moveBackStatement statementToAutomaton
+    ?let @os unused os
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
+   nodeList = .emptyList
+   transitList = .emptyList
+
    @string ident = [identifier string]
-   @location locs = loc
+   @string sourceString = [source string]
+   @string locString = [loc line]
+   @automatonNode null = @automatonNode.new{!""}
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !sourceString + "<-" + ident}
+   nodeList += !nod
+   transitList += !trans
+
+   #Encore des lignes de codes à ajouter
+}
+
+override method @assignExpressionStatement statementToAutomaton
+    ?let @os  os
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
+{
+   nodeList = .emptyList
+   transitList = .emptyList
+
+   @string ident = [identifier string]
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
+   @automatonNode null = @automatonNode.new{!""}
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "=" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "=" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
    #Encore des lignes de codes à ajouter
 }
 
 
 override method @assignAddStatement statementToAutomaton
     ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
+   nodeList = .emptyList
+   transitList = .emptyList
+
   @string ident = [identifier string]
-   @location locs = loc
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
+   @automatonNode null = @automatonNode.new{!""}
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "+=" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "+=" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
    #Encore des lignes de codes à ajouter
 }
 
 override method @assignSubStatement statementToAutomaton
     ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
+   nodeList = .emptyList
+   transitList = .emptyList
+
+   @string ident = [identifier string]
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
+   @automatonNode null = @automatonNode.new{!""} 
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "-=" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "-=" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
    #Encore des lignes de codes à ajouter
 }
 
 override method @assignMulStatement statementToAutomaton
     ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
+   nodeList = .emptyList
+   transitList = .emptyList
+
+   @string ident = [identifier string]
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
-   
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "*=" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
+   @automatonNode null = @automatonNode.new{!""} 
+   @automatonNode nod = @automatonNode.new{!locString}  
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "*=" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    #Encore des lignes de codes à ajouter
 }
 
 override method @assignDivStatement statementToAutomaton
     ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
+   nodeList = .emptyList
+   transitList = .emptyList
+
+   @string ident = [identifier string]
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
-   
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "/=" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
+   @automatonNode null = @automatonNode.new{!""} 
+   @automatonNode nod = @automatonNode.new{!locString} 
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "/=" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    #Encore des lignes de codes à ajouter
 }
 
 override method @assignRemainStatement statementToAutomaton
     ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
+   nodeList = .emptyList
+   transitList = .emptyList
+
+   @string ident = [identifier string]
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
-   
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "%=" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
+   @automatonNode null = @automatonNode.new{!""}   
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "%=" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    #Encore des lignes de codes à ajouter
 }
 
 
 override method @assignAndStatement statementToAutomaton
     ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
+   nodeList = .emptyList
+   transitList = .emptyList
+
+   @string ident = [identifier string]
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
-   
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "&=" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
+   @automatonNode null = @automatonNode.new{!""}   
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "&=" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    #Encore des lignes de codes à ajouter
 }
 
 override method @assignOrStatement statementToAutomaton
     ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
+   nodeList = .emptyList
+   transitList = .emptyList
+   @string ident = [identifier string]
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
-   
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "|=" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
+   @automatonNode null = @automatonNode.new{!""}
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "|=" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    #Encore des lignes de codes à ajouter
 }
 
 override method @assignShiftLeftStatement statementToAutomaton
     ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
+   nodeList = .emptyList
+   transitList = .emptyList
+   @string ident = [identifier string]
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
-   
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "<<" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
+   @automatonNode null = @automatonNode.new{!""} 
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "<<" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    #Encore des lignes de codes à ajouter
 }
 
 override method @assignShiftRightStatement statementToAutomaton
     ?let @os os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
+   nodeList = .emptyList
+   transitList = .emptyList
+   @string ident = [identifier string]
+   @string locString = [loc line]
    @sdmlExpression exp
    exp = [rightValue sdmlExpression !os]  
    @string expString
    expString = [exp objToString]
-   
-   transA = @transition.new {!" " !" " !" " !" "  !ident + ">>" + expString}
-   seqNode = @seq_node.new{!" " !" " !transA}
+   @automatonNode null = @automatonNode.new{!""}
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + ">>" + expString}
+   nodeList += !nod
+   transitList += !trans
+
    #Encore des lignes de codes à ajouter
 }
 
 
 override method @assignIncStatement statementToAutomaton
     ?let @os unused os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
-   
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "++"}
-   seqNode = @seq_node.new{!" " !" " !transA}
+   nodeList = .emptyList
+   transitList = .emptyList
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @automatonNode null = @automatonNode.new{!""}
+   @automatonNode nod = @automatonNode.new{!locString} 
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "++"}
+   nodeList += !nod
+   transitList += !trans
+
    #Encore des lignes de codes à ajouter
 }
 
 
 override method @assignDecStatement statementToAutomaton
     ?let @os unused os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
-  @string ident = [identifier string]
-   @location locs = loc
-   
-   transA = @transition.new {!" " !" " !" " !" "  !ident + "--"}
-   seqNode = @seq_node.new{!" " !" " !transA}
+   nodeList = .emptyList
+   transitList = .emptyList
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @automatonNode null = @automatonNode.new{!""}
+   @automatonNode nod = @automatonNode.new{!locString} 
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "--"}
+   nodeList += !nod
+   transitList += !trans
+
    #Encore des lignes de codes à ajouter
 }
 
 
 override method @functionCallStatement statementToAutomaton
     ?let @os unused os
-    ?!@transition transA
-    ?!@transition unused transB
-    ?!@seq_node  seqNode
-    ?!@if_node unused ifNode
-    ?!@loop_node unused loopNode
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {
+
    @string functionName = [funcName string]
-   @location locs = loc
-   transA = @transition.new {!" " !" " !" " !functionName +"(" +")"  !""} # à compléter 
-   seqNode = @seq_node.new{!" " !" " !transA}
+   @string locString = [loc line]
+   @automatonNode null = @automatonNode.new{!""}
+   nodeList = .emptyList
+   transitList = .emptyList
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new{!nod !null !" " !functionName +"(" + ")"  !""} # à compléter
+   nodeList += !nod
+   transitList += !trans
    #Encore des lignes de codes à ajouter
 }
 
 override method @ifStatement statementToAutomaton
-    ?let @os  os
-    ?!@transition transA
-    ?!@transition transB
-    ?!@seq_node   seqNode
-    ?!@if_node    ifNode
-    ?!@loop_node  loopNode
+    ?let @os os
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {   
+    @automatonTransitionList thenTransList = .emptyList
+    @automatonTransitionList elseTransList = .emptyList
+    @automatonNodeList thenNodList = .emptyList
+    @automatonNodeList elseNodList = .emptyList
+    @automatonNodeList nodList = .emptyList
+    @automatonTransitionList transList = .emptyList
+    @uint64 count = 1
+    nodeList = .emptyList
+    transitList = .emptyList
+    
     @sdmlExpression ifCondition = [condition sdmlExpression !os]
     @string ifConditionString = [ifCondition objToString]
-    
-    transA = @transition.new {!" " !" " !ifConditionString !""  !""} # à compléter 
-    transB = @transition.new {!" " !" " !"!"+ifConditionString !"" !""} # à compléter
-    ifNode = @if_node.new{!" " !"" !transA !transB}
-    
+    @string locString = [loc line]
+    @automatonNode null = @automatonNode.new{!""}
+    @automatonNode nod = @automatonNode.new{!locString}
+    @automatonTransition trans = @automatonTransition.new {!nod !null !ifConditionString !""  !""} # à compléter 
+    thenTransList += !trans
+    trans = @automatonTransition.new {!nod !null !"!"+ifConditionString !"" !""} # à compléter
+    elseTransList += !trans
+
     for () in trueStatements do
-     [statement statementToAutomaton !os !? transA !? transB !? seqNode !?ifNode !?loopNode]
+     [statement statementToAutomaton !os ?nodList ?transList]
+     thenNodList += nodList
+     thenTransList += transList
+     if count > 0 then 
+       @automatonTransition t_1 = [thenTransList  transitionAtIndex !count]
+       @automatonTransition t_2 = [thenTransList  transitionAtIndex !count-1]
+       t_2.target = t_1.source
+       [!?thenTransList insertAtIndex !t_2 !count-1]
+     end 
+#     if count == [trueStatements length]
+#       @automatonTransition t_1 = [thenTranList  transitionAtIndex !0]
+#       @automatonTransition t_2 = [thenTranList  transitionAtIndex !count]
+#       t_2.target = t_1.source
+#       [!?thenTransList settransitionAtIndex !t_2 !count]
+       count++
+#     end     
     end
-    
+    nodeList += thenNodList
+    transitList += thenTransList
+     
+    count = 1
     for () in falseStatements do
-      [statement statementToAutomaton !os !? transA !? transB !? seqNode !?ifNode !?loopNode]
+     [statement statementToAutomaton !os ?nodList ?transList]
+     elseNodList += nodList
+     elseTransList += transList
+     if count > 0 then
+       @automatonTransition t_1 = [elseTransList  transitionAtIndex !count]
+       @automatonTransition t_2 = [elseTransList  transitionAtIndex !count-1]
+       t_2.target = t_1.source
+       [!?elseTransList insertAtIndex !t_2 !count-1]
+     end 
+#     if count == [trueStatements length]
+#       @automatonTransition t_1 = [elseTransList  transitionAtIndex !0]
+#       @automatonTransition t_2 = [elseTransList  transitionAtIndex !count]
+#       t_2.target = t_1.source
+#       [!?elseTransList settransitionAtIndex !t_2 !count]
+       count++
+#     end     
     end
-    
-   #Encore des lignes de codes à ajouter
+    nodeList += elseNodList
+    transitList += elseTransList
+
+    #Encore des lignes de codes à ajouter
 }
 
 
-override method @ifStatement statementToAutomaton
-    ?let @os  os
-    ?!@transition transA
-    ?!@transition transB
-    ?!@seq_node   seqNode
-    ?!@if_node    ifNode
-    ?!@loop_node  loopNode
+override method @moveOutStatement statementToAutomaton
+    ?let @os unused os
+    !@automatonNodeList nodeList #nodeList
+    !@automatonTransitionList transitList #transitList
 {   
 
+   nodeList = .emptyList
+   transitList = .emptyList
+   @string ident = [identifier string]
+   @string nextStateString = [nextState string]
+   @string locString = [loc line]
+   @automatonNode null = @automatonNode.new{!""}
+   @automatonNode nod = @automatonNode.new{!locString}
+   @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !"[" + nextStateString + "]" + "<-" + ident}
+   nodeList += !nod
+   transitList += !trans
+
+   #Encore des lignes de codes à ajouter
+
 }
+
+method @methodDeclaration methodToAutomaton
+    ?let @os os
+    ?!@automaton automaTon
+{   
+    @automatonTransitionList tList = .emptyList
+    @automatonNodeList nList = .emptyList
+    automaTon.name = [name string]
+    for () in statements do 
+      [statement statementToAutomaton !os ?nList ?tList]
+      automaTon.nodeList += nList
+      automaTon.transitionList += tList
+    end
+    #Encore du code à ajouter
+}
+
+
+method @schedulerDeclaration methodsToAutomatonList
+    ?let @os os
+    ?!@automatonList automaTonList
+{
+     @automaton automaT = @automaton.new{!"" !@automatonNode.new{!""} !.emptyList !.emptyList}
+     for () in methods do
+       [methodDeclaration methodToAutomaton !os !?automaT]
+       automaTonList += !automaT
+     end
+     #Encore du code à ajouter
+}
+
 

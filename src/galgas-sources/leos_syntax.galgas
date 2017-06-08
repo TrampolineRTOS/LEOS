@@ -582,72 +582,72 @@ rule <statement> !@statement statement{
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement{
-  $move$
-  select
-    $each$
-    <full_identifier> ?@lstringlist sourceItem
-    $in$
-    <full_identifier> ?@lstringlist sourceContainer
-    $to$
-    select
-      $each$
-      $identifier$ ?let @lstring destItem
-      $in$
-      <full_identifier> ?@lstringlist destContainer
-      @expression condition
-      select
-        $while$
-        <expression> ?condition
-      or
-        condition = @boolNode.new {!.here !@lbool.new {!true !.here}}
-      end
-      statement = @moveeacheachStatement.new {!.here !sourceItem !sourceContainer !destItem !destContainer !condition}
-    or   
-      <move_destination> ?@migrationDestination destination
-      @expression condition
-      select
-        $while$
-        <expression> ?condition
-      or
-        condition = @boolNode.new {!.here !@lbool.new {!true !.here}}
-      end
-      statement = @moveeachStatement.new {!.here !sourceItem !sourceContainer !destination !condition}
-    end
-  or
-    <full_identifier> ?@lstringlist sourceContainer
-    $to$
-    <move_destination> ?@migrationDestination destination
-    statement = @moveStatement.new {!.here !sourceContainer !destination}
-  end
-  $;$
-}
+#rule <statement> !@statement statement{
+#  $move$
+#  select
+#    $each$
+#    <full_identifier> ?@lstringlist sourceItem
+#    $in$
+#    <full_identifier> ?@lstringlist sourceContainer
+#    $to$
+#    select
+#      $each$
+#      $identifier$ ?let @lstring destItem
+#      $in$
+#      <full_identifier> ?@lstringlist destContainer
+#      @expression condition
+#      select
+#        $while$
+#        <expression> ?condition
+#      or
+#        condition = @boolNode.new {!.here !@lbool.new {!true !.here}}
+#      end
+#      statement = @moveeacheachStatement.new {!.here !sourceItem !sourceContainer !destItem !destContainer !#condition}
+#    or   
+#      <move_destination> ?@migrationDestination destination
+#      @expression condition
+#      select
+#        $while$
+#        <expression> ?condition
+#      or
+#        condition = @boolNode.new {!.here !@lbool.new {!true !.here}}
+#      end
+#      statement = @moveeachStatement.new {!.here !sourceItem !sourceContainer !destination !condition}
+#    end
+#  or
+#    <full_identifier> ?@lstringlist sourceContainer
+#    $to$
+#    <move_destination> ?@migrationDestination destination
+#    statement = @moveStatement.new {!.here !sourceContainer !destination}
+#  end
+#  $;$
+#}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <move_destination> !@migrationDestination destination{
-  select
-    $[$
-    @lstring finalState = emptylstring()
-    select
-      $identifier$ ?finalState
-    or end
-    $]$
-    destination = @stateDestination.new {!.here !finalState}
-  or
-    <full_identifier> ?@lstringlist identifier
-    @lbool position
-    select
-      $front$ position = @lbool.new {!true !.here}
-    or
-      $back$ position = @lbool.new {!false !.here}
-    or
-      position = @lbool.new {!false !.here}
-    end
-    destination = @containerDestination.new {!.here !identifier !position}
-  end
-}
+#rule <move_destination> !@migrationDestination destination{
+#  select
+#    $[$
+#  @lstring finalState = emptylstring()
+#    select
+#      $identifier$ ?finalState
+#    or end
+#    $]$
+#    destination = @stateDestination.new {!.here !finalState}
+#  or
+#    <full_identifier> ?@lstringlist identifier
+#    @lbool position
+#    select
+#      $front$ position = @lbool.new {!true !.here}
+#    or
+#      $back$ position = @lbool.new {!false !.here}
+#    or
+#      position = @lbool.new {!false !.here}
+#    end
+#    destination = @containerDestination.new {!.here !identifier !position}
+#  end
+#}
 
 #-----------------------------------------------------------------------------
 # 
@@ -682,34 +682,34 @@ rule <statement> !@statement statement{
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <statement> !@statement statement{
-  $for$ $each$
-  <iteration_list> ?@itemAndContainerList iteration
-  <statement_list> ?@statementList statements
-  statement = @foreachStatement.new {!.here !iteration !statements}
-}
+#rule <statement> !@statement statement{
+#  $for$ $each$
+#  <iteration_list> ?@itemAndContainerList iteration
+#  <statement_list> ?@statementList statements
+#  statement = @foreachStatement.new {!.here !iteration !statements}
+#}
 
 #-----------------------------------------------------------------------------
 # 
 #-----------------------------------------------------------------------------
-rule <iteration_list> !@itemAndContainerList iteration{
-  iteration = @itemAndContainerList.emptyList
-  repeat
-    $identifier$ ?let @lstring item
-    $in$
-    <full_identifier> ?@lstringlist container
-    @expression where
-    select
-      $where$
-      <expression> ?where
-    or
-      where = @boolNode.new {!.here !@lbool.new {!true !.here}}
-    end
-    iteration += !item !container !where
-  while
-    $,$
-  end
-}
+#rule <iteration_list> !@itemAndContainerList iteration{
+#  iteration = @itemAndContainerList.emptyList
+#  repeat
+#    $identifier$ ?let @lstring item
+#    $in$
+#    <full_identifier> ?@lstringlist container
+#    @expression where
+#    select
+#      $where$
+#      <expression> ?where
+#    or
+#      where = @boolNode.new {!.here !@lbool.new {!true !.here}}
+#    end
+#    iteration += !item !container !where
+#  while
+#    $,$
+#  end
+#}
 
 #-----------------------------------------------------------------------------
 # 
