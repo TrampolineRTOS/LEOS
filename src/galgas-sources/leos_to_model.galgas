@@ -29,6 +29,43 @@ class @automaton {
   @automatonTransitionList transitionList
 }
 
+getter @automaton getAutomatonName 
+    -> @string result 
+{
+   result = name
+}
+
+setter @automaton setAutomatonName 
+   ?@string newName 
+{
+   name = newName
+} 
+
+setter @automaton setAutoNodeList
+   ?@automatonNodeList newNodeList
+{
+   nodeList = newNodeList
+}
+
+setter @automaton setAutoTransList
+   ?@automatonTransitionList newTransList
+{
+   transitionList = newTransList
+}
+
+setter @automaton addAutoNodeList
+   ?@automatonNodeList newNodeList
+{
+   nodeList += newNodeList
+}
+
+setter @automaton addAutoTransList
+   ?@automatonTransitionList newTransList
+{
+   transitionList += newTransList
+}
+
+
 List @automatonList {
   @automaton automaton
 }
@@ -384,8 +421,6 @@ override getter @sdmlGreaterNode objToString
    result = leftExpString + ">" + rightExpString
 }
 
-
-
 override getter @sdmlAndNode objToString
   ->@string result 
 {
@@ -395,7 +430,6 @@ override getter @sdmlAndNode objToString
    rightExpString = [right objToString]
    result = leftExpString + "&" + rightExpString
 }
-
 
 override getter @sdmlOrNode objToString
   ->@string result 
@@ -884,12 +918,12 @@ override method @ifStatement statementToAutomaton
      [statement statementToAutomaton !os ?nodList ?transList]
      thenNodList += nodList
      thenTransList += transList
-     if count > 0 then 
-       @automatonTransition t_1 = [thenTransList  transitionAtIndex !count]
-       @automatonTransition t_2 = [thenTransList  transitionAtIndex !count-1]
-       t_2.target = t_1.source
-       [!?thenTransList insertAtIndex !t_2 !count-1]
-     end 
+#     if count > 0 then   #lien entre les etats - transitions
+#       @automatonTransition t_1 = [thenTransList  transitionAtIndex !count]
+#       @automatonTransition t_2 = [thenTransList  transitionAtIndex !count-1]
+#       t_2.target = t_1.source
+#       [!?thenTransList insertAtIndex !t_2 !count-1]
+#     end 
 #     if count == [trueStatements length]
 #       @automatonTransition t_1 = [thenTranList  transitionAtIndex !0]
 #       @automatonTransition t_2 = [thenTranList  transitionAtIndex !count]
@@ -906,12 +940,12 @@ override method @ifStatement statementToAutomaton
      [statement statementToAutomaton !os ?nodList ?transList]
      elseNodList += nodList
      elseTransList += transList
-     if count > 0 then
-       @automatonTransition t_1 = [elseTransList  transitionAtIndex !count]
-       @automatonTransition t_2 = [elseTransList  transitionAtIndex !count-1]
-       t_2.target = t_1.source
-       [!?elseTransList insertAtIndex !t_2 !count-1]
-     end 
+#     if count > 0 then    #lien entre les etats - transitions
+#       @automatonTransition t_1 = [elseTransList  transitionAtIndex !count]
+#       @automatonTransition t_2 = [elseTransList  transitionAtIndex !count-1]
+#       t_2.target = t_1.source
+#       [!?elseTransList insertAtIndex !t_2 !count-1]
+#     end 
 #     if count == [trueStatements length]
 #       @automatonTransition t_1 = [elseTransList  transitionAtIndex !0]
 #       @automatonTransition t_2 = [elseTransList  transitionAtIndex !count]
@@ -932,7 +966,6 @@ override method @moveOutStatement statementToAutomaton
     !@automatonNodeList nodeList #nodeList
     !@automatonTransitionList transitList #transitList
 {   
-
    nodeList = .emptyList
    transitList = .emptyList
    @string ident = [identifier string]
@@ -954,11 +987,14 @@ method @methodDeclaration methodToAutomaton
 {   
     @automatonTransitionList tList = .emptyList
     @automatonNodeList nList = .emptyList
-    automaTon.name = [name string]
+    @automaton automaT = @automaton.new{!"" !@automatonNode.new{!""} !.emptyList !.emptyList}
+    
+#    automaTon.name = [name string]
+    [!?automaTon setAutomatonName ![name string]]
     for () in statements do 
       [statement statementToAutomaton !os ?nList ?tList]
-      automaTon.nodeList += nList
-      automaTon.transitionList += tList
+      [!?automaTon addAutoNodeList !nList] #automaTon.nodeList += nList
+      [!?automaTon addAutoTransList !tList] #automaTon.transitionList += tList
     end
     #Encore du code à ajouter
 }
@@ -977,3 +1013,28 @@ method @schedulerDeclaration methodsToAutomatonList
 }
 
 
+#this function allows to link each automaton state and transition 
+
+
+method @automatonTransitionList linkStateTransition ?! @automatonTransitionList transitionS
+{
+  @uint64 i = 0
+  for i in @range.new{!0 ![transitionS length]-1} do 
+       @automatonTransition t_1 = [transitionS  transitionAtIndex !i]
+       @automatonTransition t_2 = [transitionS  transitionAtIndex !i+1]
+       t_1.target = t_2.source
+       [!?transitionS insertAtIndex !t_1 !i]
+       i++ 
+  end 
+}
+
+
+setter @automaton finalizeAutomatonConstruction ?! @automaton unused automaTon
+{
+  [nodeList first ?initNode]
+  @uint64 transitionListLength = [transitionList length]
+  @automatonTransition lastTransition 
+  [transitionList last ?lastTransition]
+  lastTransition.target = initNode
+  [!?transitionList insertAtIndex !lastTransition !transitionListLength-1]
+}
