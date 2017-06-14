@@ -2,6 +2,9 @@
 #                       Model generation from leos                             #      
 #------------------------------------------------------------------------------#
 
+
+#------- Automaton Classes and set of getters and setters relate to it --------#
+
 class @automatonNode {
   @string name 
 }
@@ -14,6 +17,13 @@ class @automatonTransition{
   @string assignment 
 }
 
+class @automaton {
+  @string name
+  @automatonNode initNode
+  @automatonNodeList nodeList
+  @automatonTransitionList transitionList
+}
+
 list @automatonNodeList { 
   @automatonNode node
 }
@@ -22,48 +32,44 @@ list @automatonTransitionList {
   @automatonTransition transition %setter
 }
 
-class @automaton {
-  @string name
-  @automatonNode initNode
-  @automatonNodeList nodeList
-  @automatonTransitionList transitionList
+List @automatonList {
+  @automaton automaton
 }
 
-getter @automaton getAutomatonName 
+getter @automaton getAutomatonName # returns automaton name 
     -> @string result 
 {
    result = name
 }
 
-setter @automaton setAutomatonName 
+setter @automaton setAutomatonName #set a new name at the automaton
    ?@string newName 
 {
    name = newName
 } 
 
-setter @automaton setAutoNodeList
+setter @automaton setAutoNodeList #change the automaton node list by the a new node list
    ?@automatonNodeList newNodeList
 {
    nodeList = newNodeList
 }
 
-setter @automaton setAutoTransList
+setter @automaton setAutoTransList #change the automaton transition list by the a new transition list
    ?@automatonTransitionList newTransList
 {
    transitionList = newTransList
 }
 
-setter @automaton addAutoNodeList
+setter @automaton addAutoNodeList #concatenate a new node list to the automaton node list
    ?@automatonNodeList newNodeList
 {
    nodeList += newNodeList
 }
 
-setter @automaton addAutoTransList
+setter @automaton addAutoTransList #concatenate a new transition list to the automaton transition list
    ?@automatonTransitionList newTransList
 {
    @uint64 transitionListLength = [transitionList length]
-   log transitionListLength
    if transitionListLength > 0 then 
       @automatonTransition firstTransitionOfNewTransList
       @automatonTransition lastTransitionOftransitionList
@@ -77,34 +83,34 @@ setter @automaton addAutoTransList
    transitionList += newTransList
 }
 
-setter @automatonTransition setTransitionTarget
+setter @automatonTransition setTransitionTarget #set a new target node to the relate transition
    ?@automatonNode Newnode
 {
   target = Newnode
 }
 
-setter @automatonTransition setTransitionSource
+setter @automatonTransition setTransitionSource #set a new source node to the relate transition
    ?@automatonNode Newnode
 {
   source = Newnode
 }
 
-getter @automatonTransition getTransitionTarget
+getter @automatonTransition getTransitionTarget #get a the relate transition target node
    ->@automatonNode result
 {
   result = target
 }
 
-getter @automatonTransition getTransitionSource
+getter @automatonTransition getTransitionSource #get a the relate transition source node
    ->@automatonNode result
 {
   result = source
 }
 
-
-List @automatonList {
-  @automaton automaton
-}
+#------------------------------------------------------------------------------#
+# These following getters allow to each program methods, statements etc... to 
+# perform the model generation
+#------------------------------------------------------------------------------#
 
 getter @schedulerDeclaration allMethods  
   -> @methodDeclarationMap result 
@@ -147,22 +153,23 @@ getter @methodDeclaration argName
   end
 }
 
-#------------------------------------------------------------------------------#
-# automaton state and transition creation from a statement 
-#------------------------------------------------------------------------------#
-
-#------------ sdmlExpression getter (object to string convertin) --------------#
-getter @sdmlExpression objToString
-  ->@string result 
-{
-   error .here: "the @sdmExpression expressionType is not defined": result
-}
-
 getter @sdmlExpression getIfExprLocation
   ->@location result 
   {
      result = loc
   }
+
+#------------------------------------------------------------------------------#
+# automaton state and transition creation from a statement 
+#------------------------------------------------------------------------------#
+
+#------------ sdmlExpression getter (object to string conversion) --------------#
+
+getter @sdmlExpression objToString
+  ->@string result 
+{
+   error .here: "the @sdmExpression expressionType is not defined": result
+}
 
 override getter @sdmlIntegerNode objToString
   ->@string result 
@@ -211,7 +218,6 @@ override getter @sdmlLowerEqualNode objToString
    rightExpString = [right objToString]
    result = leftExpString + "<=" + rightExpString
 }
-
 
 override getter @sdmlGreaterEqualNode objToString
   ->@string result 
@@ -378,8 +384,8 @@ method @statement  statementToAutomaton
     !@automatonNodeList nodeList #nodeList
     !@automatonTransitionList transitList #transitList
 {
- error .here: "the @statement sdmlStatement is not defined":nodeList
- error .here : "toto":transitList
+   error .here: "the @statement sdmlStatement is not defined":nodeList
+   error .here : "toto":transitList
 }
 
 override method @moveFrontStatement statementToAutomaton
@@ -398,10 +404,7 @@ override method @moveFrontStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null  !" " !" "  !ident + "->" + destinationString}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
-
 
 override method @moveBackStatement statementToAutomaton
     ?let @os unused os
@@ -419,8 +422,6 @@ override method @moveBackStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !sourceString + "<-" + ident}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
 
 override method @assignExpressionStatement statementToAutomaton
@@ -442,11 +443,7 @@ override method @assignExpressionStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "=" + expString}
    nodeList += !nod
    transitList += !trans
-
-   
-   #Encore des lignes de codes à ajouter
 }
-
 
 override method @assignAddStatement statementToAutomaton
     ?let @os os
@@ -467,9 +464,6 @@ override method @assignAddStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "+=" + expString}
    nodeList += !nod
    transitList += !trans
-
-   
-   #Encore des lignes de codes à ajouter
 }
 
 override method @assignSubStatement statementToAutomaton
@@ -490,10 +484,7 @@ override method @assignSubStatement statementToAutomaton
    @automatonNode nod = @automatonNode.new{!locString}
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "-=" + expString}
    nodeList += !nod
-   transitList += !trans
-
-   
-   #Encore des lignes de codes à ajouter
+   transitList += !trans   
 }
 
 override method @assignMulStatement statementToAutomaton
@@ -515,8 +506,6 @@ override method @assignMulStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "*=" + expString}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
 
 override method @assignDivStatement statementToAutomaton
@@ -538,8 +527,6 @@ override method @assignDivStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "/=" + expString}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
 
 override method @assignRemainStatement statementToAutomaton
@@ -561,10 +548,7 @@ override method @assignRemainStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "%=" + expString}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
-
 
 override method @assignAndStatement statementToAutomaton
     ?let @os os
@@ -585,8 +569,6 @@ override method @assignAndStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "&=" + expString}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
 
 override method @assignOrStatement statementToAutomaton
@@ -607,8 +589,6 @@ override method @assignOrStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "|=" + expString}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
 
 override method @assignShiftLeftStatement statementToAutomaton
@@ -629,8 +609,6 @@ override method @assignShiftLeftStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "<<" + expString}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
 
 override method @assignShiftRightStatement statementToAutomaton
@@ -651,10 +629,7 @@ override method @assignShiftRightStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + ">>" + expString}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
-
 
 override method @assignIncStatement statementToAutomaton
     ?let @os unused os
@@ -670,8 +645,6 @@ override method @assignIncStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "++"}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
 
 
@@ -689,8 +662,6 @@ override method @assignDecStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new {!nod !null !" " !" "  !ident + "--"}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
 }
 
 
@@ -699,7 +670,6 @@ override method @functionCallStatement statementToAutomaton
     !@automatonNodeList nodeList #nodeList
     !@automatonTransitionList transitList #transitList
 {
-
    @string functionName = [funcName string]
    @string locString = [loc line]
    @automatonNode null = @automatonNode.new{!""}
@@ -709,7 +679,6 @@ override method @functionCallStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new{!nod !null !" " !functionName +"(" + ")"  !""} # à compléter
    nodeList += !nod
    transitList += !trans
-   #Encore des lignes de codes à ajouter
 }
 
 override method @ifStatement statementToAutomaton
@@ -773,10 +742,7 @@ override method @ifStatement statementToAutomaton
     [!?lastTransition setTransitionTarget !endIfNode]
     [!?elseTransList setTransitionAtIndex !lastTransition !count]
     transitList += elseTransList
-
-    #Encore des lignes de codes à ajouter
 }
-
 
 override method @moveOutStatement statementToAutomaton
     ?let @os unused os
@@ -793,9 +759,6 @@ override method @moveOutStatement statementToAutomaton
    @automatonTransition trans = @automatonTransition.new{!nod !null !" " !" "  !"[" + nextStateString + "]" + "<-" + ident}
    nodeList += !nod
    transitList += !trans
-
-   #Encore des lignes de codes à ajouter
-
 }
 
 method @methodDeclaration methodToAutomaton
@@ -812,7 +775,6 @@ method @methodDeclaration methodToAutomaton
       [!?automaTon addAutoNodeList !nList] #automaTon.nodeList += nList
       [!?automaTon addAutoTransList !tList] #automaTon.transitionList += tList
     end
-    #Encore du code à ajouter
 }
 
 method @schedulerDeclaration methodsToAutomatonList
@@ -825,7 +787,6 @@ method @schedulerDeclaration methodsToAutomatonList
        [!?automaT finalizeAutomatonConstruction]
        automaTonList += !automaT
      end
-     #Encore du code à ajouter
 }
 
 #this function allows to link each automaton state and transition 
@@ -836,11 +797,8 @@ setter @automatonTransitionList linkStateTransition
   @uint64 transitionListLength = [self length]
   if transitionListLength > 0 then 
      for i in @range.new{!0 !transitionListLength-1} do 
-#        log i
         @automatonTransition t_1 = [self  transitionAtIndex !i]
-#        log t_1
         @automatonTransition t_2 = [self  transitionAtIndex !i+1]
-#        log t_2
         @automatonNode sourceNode = [t_2 getTransitionSource]
         @automatonNode t_1Target = [t_1 getTransitionTarget]
         @automatonNode null = @automatonNode.new{!""}
@@ -851,6 +809,8 @@ setter @automatonTransitionList linkStateTransition
      end 
   end 
 }
+
+#this setter finalizes the construction of the automaton
 
 setter @automaton finalizeAutomatonConstruction #?! @automaton unused automaTon
 {
@@ -874,13 +834,12 @@ setter @automaton finalizeAutomatonConstruction #?! @automaton unused automaTon
   [transitionList last ?lastTransition]
   endNode = [lastTransition getTransitionTarget] #lastTransition.target = initNode
   
-#  if endNode == @automatonNode.new{!""} then 
-#     endNode = @automatonNode.new{!"endState"}
-#   [!?lastTransition setTransitionTarget !endNode]
-#     log transitionList
-#     [!?transitionList setTransitionAtIndex !lastTransition !transitionListLength-1]
-#  end
-  
-  [!?finalTransition setTransitionSource !endNode]  
-  [!?transitionList insertAtIndex !finalTransition !transitionListLength]
+  if endNode == @automatonNode.new{!""} then 
+     endNode = initNode #@automatonNode.new{!"endState"}
+     [!?lastTransition setTransitionTarget !endNode]
+     [!?transitionList setTransitionAtIndex !lastTransition !transitionListLength-1] 
+  else  
+     [!?finalTransition setTransitionSource !endNode]  
+     [!?transitionList insertAtIndex !finalTransition !transitionListLength] 
+  end
 }
