@@ -370,11 +370,14 @@ override getter @sdmlRemainNode objToString
    result = leftExpString + "%" + rightExpString
 }
 
-#override getter @sdmlFunctionCallNode objToString
-#  ->@string result
-#{
-#  
-#}
+override getter @sdmlFunctionCallNode objToString
+  ->@string result
+{
+     result = ""
+     for (argument) in arguments do
+      result += [argument objToString]
+     end
+}
 
 
 #--------- Method for states and transitions creation from statements ---------#
@@ -666,17 +669,25 @@ override method @assignDecStatement statementToAutomaton
 
 
 override method @functionCallStatement statementToAutomaton
-    ?let @os unused os
+    ?let @os os
     !@automatonNodeList nodeList #nodeList
     !@automatonTransitionList transitList #transitList
 {
    @string functionName = [funcName string]
    @string locString = [loc line]
+   @string argumentString = ""
+#   @sdmlExpressionList args = .emptyList
+   for (argument) in arguments do 
+     @sdmlExpression arg = [argument sdmlExpression !os]
+     argumentString += [arg objToString]
+   between
+     argumentString += ", "
+   end 
    @automatonNode null = @automatonNode.new{!""}
    nodeList = .emptyList
    transitList = .emptyList
    @automatonNode nod = @automatonNode.new{!locString}
-   @automatonTransition trans = @automatonTransition.new{!nod !null !" " !functionName +"(" + ")"  !""} # à compléter
+   @automatonTransition trans = @automatonTransition.new{!nod !null !" " !functionName +"("+ argumentString + ")"  !""}  
    nodeList += !nod
    transitList += !trans
 }
