@@ -1,0 +1,288 @@
+#------------------------------------------------------------------------------#
+#                Intermediate model generation from leos                       #      
+#------------------------------------------------------------------------------#
+
+class @intermediate_automatonNode {
+  @string name 
+}
+
+class @intermediate_automatonTransition{
+  @intermediate_automatonNode source 
+  @intermediate_automatonNode target
+  @statement statement 
+}
+
+class @intermediate_automaton {
+  @string name
+  @intermediate_automatonNode initNode
+  @intermediate_automatonNodeList nodeList
+  @intermediate_automatonTransitionList transitionList
+}
+
+list @intermediate_automatonNodeList { 
+  @intermediate_automatonNode node
+}
+
+list @intermediate_automatonTransitionList {
+  @intermediate_automatonTransition transition %setter
+}
+
+List @intermediate_automatonList {
+  @intermediate_automaton automaton
+}
+
+setter @intermediate_automatonTransition isetTransitionTarget #set a new target node to the relate transition
+   ?@intermediate_automatonNode Newnode
+{
+  target = Newnode
+}
+
+setter @intermediate_automatonTransition isetTransitionSource #set a new source node to the relate transition
+   ?@intermediate_automatonNode Newnode
+{
+  source = Newnode
+}
+
+getter @intermediate_automatonTransition igetTransitionTarget #get a the relate transition target node
+   ->@intermediate_automatonNode result
+{
+  result = target
+}
+
+getter @intermediate_automatonTransition igetTransitionSource #get a the relate transition source node
+   ->@intermediate_automatonNode result
+{
+  result = source
+}
+
+setter @intermediate_automaton addIntAutoNodeList #concatenate a new node list to the automaton node list
+   ?@intermediate_automatonNodeList newNodeList
+{
+   nodeList += newNodeList
+}
+
+setter @intermediate_automaton addIntAutoTransList #concatenate a new transition list to the automaton transition list
+   ?@intermediate_automatonTransitionList newTransList
+{
+   @uint64 transitionListLength = [transitionList length]
+   if transitionListLength > 0 then 
+      @intermediate_automatonTransition firstTransitionOfNewTransList
+      @intermediate_automatonTransition lastTransitionOftransitionList
+      [newTransList first ?firstTransitionOfNewTransList]
+      [transitionList last ?lastTransitionOftransitionList]
+      @intermediate_automatonNode sourceNode = [firstTransitionOfNewTransList igetTransitionSource]
+      @intermediate_automatonNode TargetNode = [lastTransitionOftransitionList igetTransitionTarget]
+      [!?lastTransitionOftransitionList isetTransitionTarget !sourceNode]
+      [!?transitionList setTransitionAtIndex !lastTransitionOftransitionList !transitionListLength-1]
+   end 
+   transitionList += newTransList
+}
+
+getter @intermediate_automaton getAutomatonName # returns automaton name 
+    -> @string result 
+{
+   result = name
+}
+
+setter @intermediate_automaton setAutomatonName #set a new name at the automaton
+   ?@string newName 
+{
+   name = newName
+} 
+
+#method @methodDeclaration methodToIntermediateAutomaton
+#    ?let @os os
+#    ?!@intermediate_automaton automaTon
+#{   
+#    @intermediate_automatonTransitionList tList = .emptyList
+#    @intermediate_automatonNodeList nList = .emptyList
+#    @intermediate_automaton automaT = @automaton.new{!"" !@automatonNode.new{!""} !.emptyList !.emptyList}
+#    automaTon = automaT
+#    [!?automaTon setAutomatonName ![name string]]
+#    for () in statements do 
+#      @location loc = [statement location]
+#      @string locString = [loc line]
+#      @intermediate_automatonNode null = @intermediate_automatonNode.new{!""}
+#      @intermediate_automatonNode nod = @intermediate_automatonNode.new{!locString}
+#      @intermediate_automatonTransition trans = @intermediate_automatonTransition.new{!nod !null !statement}
+#      nList += !nod
+#      tList += !trans
+##      [statement statementToAutomaton !os ?nList ?tList]
+#      [!?automaTon addAutoNodeList !nList] #automaTon.nodeList += nList
+#      [!?automaTon addAutoTransList !tList] #automaTon.transitionList += tList
+#    end
+#}
+
+#method @statement  statementToIntermediateAutomaton
+#    ?let @os unused os
+#    !@intermediate_automatonNodeList nodeList #nodeList
+#    !@intermediate_automatonTransitionList transitList #transitList
+#{
+#   error .here: "the @statement sdmlStatement is not defined":nodeList
+#   error .here : "toto":transitList
+#}
+
+method @statement statementToIntermediateAutomaton
+    ?let @os unused os
+    !@intermediate_automatonNodeList nodeList #nodeList
+    !@intermediate_automatonTransitionList transitList #transitList
+{ 
+   nodeList = .emptyList
+   transitList = .emptyList
+
+   @string locString = [loc line]
+   @intermediate_automatonNode null = @intermediate_automatonNode.new{!""}
+   @intermediate_automatonNode nod = @intermediate_automatonNode.new{!locString}  
+   @intermediate_automatonTransition trans = @intermediate_automatonTransition.new {!nod !null  !self}
+   nodeList += !nod
+   transitList += !trans
+}
+
+override method @ifStatement statementToIntermediateAutomaton
+    ?let @os os
+    !@intermediate_automatonNodeList nodeList #nodeList
+    !@intermediate_automatonTransitionList transitList #transitList
+{   
+    @intermediate_automatonTransitionList thenTransList = .emptyList
+    @intermediate_automatonTransitionList elseTransList = .emptyList
+    @intermediate_automatonNodeList thenNodList = .emptyList
+    @intermediate_automatonNodeList elseNodList = .emptyList
+    @intermediate_automatonNodeList nodList = .emptyList
+    @intermediate_automatonTransitionList transList = .emptyList
+    @intermediate_automatonTransition lastTransition
+    @uint64 count = 0 
+    nodeList = .emptyList
+    transitList = .emptyList
+    
+    @sdmlExpression ifCondition = [condition sdmlExpression !os]
+    @location ifLocation = [ifCondition getIfExprLocation]
+    @string ifLocString = [ifLocation line]
+    @string ifConditionString = [ifCondition objToString]
+    @string endIfLocString = [loc line]
+    @intermediate_automatonNode null = @intermediate_automatonNode.new{!""}
+    @intermediate_automatonNode ifNod = @intermediate_automatonNode.new{!ifLocString}
+    @intermediate_automatonNode endIfNode = @intermediate_automatonNode.new{!endIfLocString}
+    nodeList += !ifNod
+    nodeList += !endIfNode
+    @intermediate_automatonTransition trans = @intermediate_automatonTransition.new {!ifNod !null !self} # à compléter 
+    thenTransList += !trans
+    trans = @intermediate_automatonTransition.new {!ifNod !null !self} # à compléter
+    elseTransList += !trans
+
+    for () in trueStatements do
+     [statement statementToIntermediateAutomaton !os ?nodList ?transList]
+     thenNodList += nodList
+     thenTransList += transList
+     count++    
+    end
+    [!?thenTransList ilinkStateTransition]
+    nodeList += thenNodList
+    
+    [thenTransList last ?lastTransition]
+    [!?lastTransition isetTransitionTarget !endIfNode]
+    [!?thenTransList setTransitionAtIndex !lastTransition !count]
+    
+    transitList += thenTransList
+    
+    count = 0
+    for () in falseStatements do
+     [statement statementToIntermediateAutomaton !os ?nodList ?transList]
+     elseNodList += nodList
+     elseTransList += transList
+     count++    
+    end
+    [!?elseTransList ilinkStateTransition]
+    nodeList += elseNodList
+    
+    [elseTransList last ?lastTransition]
+    [!?lastTransition isetTransitionTarget !endIfNode]
+    [!?elseTransList setTransitionAtIndex !lastTransition !count]
+    transitList += elseTransList
+}
+
+
+method @methodDeclaration methodToIntermediateAutomaton
+    ?let @os os
+    ?!@intermediate_automaton automaTon
+{   
+    @intermediate_automatonTransitionList tList = .emptyList
+    @intermediate_automatonNodeList nList = .emptyList
+    @intermediate_automaton automaT = @intermediate_automaton.new{!"" !@intermediate_automatonNode.new{!""} !.emptyList !.emptyList}
+    automaTon = automaT
+    [!?automaTon setAutomatonName ![name string]]
+    for () in statements do 
+      [statement statementToIntermediateAutomaton !os ?nList ?tList]
+      [!?automaTon addIntAutoNodeList !nList] #automaTon.nodeList += nList
+      [!?automaTon addIntAutoTransList !tList] #automaTon.transitionList += tList
+    end
+}
+
+method @schedulerDeclaration methodsToIntermediateAutomatonList
+    ?let @os os
+    ?!@intermediate_automatonList automaTonList
+{
+     @intermediate_automaton automaT = @intermediate_automaton.new{!"" !@intermediate_automatonNode.new{!""} !.emptyList !.emptyList}
+     for () in methods do
+       [methodDeclaration methodToIntermediateAutomaton !os !?automaT]
+#       [!?automaT finalizeIntermediateAutomatonConstruction]
+       automaTonList += !automaT
+     end
+}
+
+#this function allows to link each automaton state and transition 
+
+setter @intermediate_automatonTransitionList ilinkStateTransition
+{
+  @uint64 i = 0
+  @uint64 transitionListLength = [self length]
+  if transitionListLength > 0 then 
+     for i in @range.new{!0 !transitionListLength-1} do 
+        @intermediate_automatonTransition t_1 = [self  transitionAtIndex !i]
+        @intermediate_automatonTransition t_2 = [self  transitionAtIndex !i+1]
+        @intermediate_automatonNode sourceNode = [t_2 igetTransitionSource]
+        @intermediate_automatonNode t_1Target = [t_1 igetTransitionTarget]
+        @intermediate_automatonNode null = @intermediate_automatonNode.new{!""}
+        if t_1Target == null then
+          [!?t_1 isetTransitionTarget !sourceNode] # t_1.target = t_2.source
+          [!?self setTransitionAtIndex !t_1 !i]
+        end
+     end 
+  end 
+}
+
+#this setter finalizes the construction of the automaton
+
+#setter @intermediate_automaton finalizeIntermediateAutomatonConstruction #?! @automaton unused automaTon
+#{
+#  @intermediate_automatonNode initialTransitionTarget
+#  [nodeList first ?initialTransitionTarget]
+
+#  initNode = @intermediate_automatonNode.new{!"initial_"+name}
+#  [!?nodeList insertAtIndex !initNode !0]
+  
+#  @intermediate_automatonTransition initialTransition = @intermediate_automatonTransition.new{!initNode !initialTransitionTarget !}
+#  [!?transitionList insertAtIndex !initialTransition !0]
+#
+#  @intermediate_automatonTransition finalTransition = @intermediate_automatonTransition.new{!initNode !initNode !final_statement}
+#  [!?transitionList insertAtIndex !initialTransition !0]
+#  
+#  @intermediate_automatonTransition lastTransition
+#  @uint64 transitionListLength = [transitionList length] 
+#  @intermediate_automatonNode endNode
+#  
+#  [transitionList last ?lastTransition]
+#  endNode = [lastTransition igetTransitionTarget] #lastTransition.target = initNode
+#  
+#  if endNode == @intermediate_automatonNode.new{!""} then 
+#     endNode = initNode #@automatonNode.new{!"endState"}
+#     [!?lastTransition isetTransitionTarget !endNode]
+#     [!?transitionList setTransitionAtIndex !lastTransition !transitionListLength-1] 
+#  else  
+#     [!?finalTransition isetTransitionSource !endNode]  
+#     [!?transitionList insertAtIndex !finalTransition !transitionListLength] 
+#  end
+#}
+
+
+
+

@@ -29,6 +29,7 @@ project (0:0:1) -> "leos"
   "galgas-sources/leos_to_model.galgas"
   "galgas-sources/leos_cocoa.galgas"
   "galgas-sources/leos_program.galgas"
+  "galgas-sources/leos_to_intermediate_model.galgas"
 
 #--- GTL
   "GTL/galgas-sources/gtl_interface.galgas"

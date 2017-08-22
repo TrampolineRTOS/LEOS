@@ -163,7 +163,7 @@ getter @sdmlExpression getIfExprLocation
 # automaton state and transition creation from a statement 
 #------------------------------------------------------------------------------#
 
-#------------ sdmlExpression getter (object to string conversion) --------------#
+#------------ sdmlExpression getter (object to string conversion) -------------#
 
 getter @sdmlExpression objToString
   ->@string result 
@@ -771,6 +771,7 @@ override method @moveOutStatement statementToAutomaton
    nodeList += !nod
    transitList += !trans
 }
+#------------------------------------------------------------------------------#
 
 method @methodDeclaration methodToAutomaton
     ?let @os os
@@ -825,7 +826,6 @@ setter @automatonTransitionList linkStateTransition
 
 setter @automaton finalizeAutomatonConstruction #?! @automaton unused automaTon
 {
-
   @automatonNode initialTransitionTarget
   [nodeList first ?initialTransitionTarget]
 

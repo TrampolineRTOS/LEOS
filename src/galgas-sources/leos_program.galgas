@@ -8,7 +8,26 @@ message "a source text file with the .leos extension" ?sourceFilePath:@lstring i
 {
   @os os
   grammar leos_grammar in inSourceFile ?os
-  log os
+#  log os
+
+################################################################################
+  @schedulerDeclarationMap schedMap = [os schedulerDeclarations]
+  @schedulerDeclaration sched
+  @automatonList autList = .emptyList
+  @intermediate_automatonList iautList = .emptyList
+#  log schedMap
+  @lstring key = .new {!"fixed_priority" !.here} 
+  [schedMap getScheduler !key ?sched]
+#  log sched
+#  [sched methodsToAutomatonList !os !?autList]
+#  @automaton aut = [autList automatonAtIndex !7]
+#  log aut
+  
+  [sched methodsToIntermediateAutomatonList !os !?iautList]
+  @intermediate_automaton iaut = [iautList automatonAtIndex !6]
+  log iaut
+  
+################################################################################
   os = [os verify]
   
   
