@@ -106,9 +106,9 @@ method @statement statementToIntermediateAutomaton
 { 
    nodeList = .emptyList
    transitList = .emptyList
-#   @string index = [loc   locationIndex]
+#   @string column = [loc   column]
 #   @string line = [loc  line]
-#   @string locString = line + "_" + index  
+#   @string locString = line + "_" + column  
    @string locString = [loc  line]
    @intermediate_automatonNode null = @intermediate_automatonNode.new{!""}
    @intermediate_automatonNode nod = @intermediate_automatonNode.new{!locString}  
@@ -135,8 +135,16 @@ override method @ifStatement statementToIntermediateAutomaton
     @sdmlExpression ifCondition = [condition sdmlExpression !os]
     @location ifLocation = [ifCondition getIfExprLocation]
     @string ifLocString = [ifLocation line]
+#    @string ifColumn = [ifLocation   column]
+#    @string ifLine = [ifLocation  line]
+#    @string ifLocString = ifLine + "_" + ifColumn
+    
     @string ifConditionString = [ifCondition objToString]
     @string endIfLocString = [loc line]
+#    @string endIfColumn = [loc   column]
+#    @string endIfLine = [loc  line]
+#    @string endIfLocString = endIfLine + "_" + endIfColumn
+
     @intermediate_automatonNode null = @intermediate_automatonNode.new{!""}
     @intermediate_automatonNode ifNod = @intermediate_automatonNode.new{!ifLocString}
 #    @intermediate_automatonNode elseifNod = @intermediate_automatonNode.new{!ifLocString+ifLocString}# a supprimer plus tard 
@@ -232,6 +240,7 @@ method @schedulerDeclaration methodsToIntermediateAutomatonList
        [methodDeclaration methodToIntermediateAutomaton !os !?automaT]
        [!?automaT finalizeIntermediateAutomatonConstruction]
        automaTonList += !automaT
+       [automaT automatonToGraphviz]
      end
 }
 
@@ -290,4 +299,40 @@ setter @intermediate_automaton finalizeIntermediateAutomatonConstruction #?! @au
      [!?finalTransition isetTransitionSource !endNode]  
      [!?transitionList insertAtIndex !finalTransition !transitionListLength] 
   end
+}
+
+
+getter @intermediate_automatonNode getNodeName
+   -> @string result 
+{
+   result = name
+}
+
+method @intermediate_automaton automatonToGraphviz
+      
+{
+   @string nodeNames = ""
+   for () in nodeList do 
+      @string nodeName = [node getNodeName] + ";"
+      nodeNames += nodeName
+      between  nodeNames += "\n "
+   end
+   
+   @string transitions = " \n"
+   
+   for () in transitionList do 
+     @string transitionSource = [[transition igetTransitionSource] getNodeName]
+     @string transitionTarget = [[transition igetTransitionTarget] getNodeName]
+     @string transit = transitionSource + "->" + transitionTarget+ ";"
+     transitions += transit
+     between  transitions += "\n "
+   end
+   
+   @string head = "digraph" + " " + name + " " + "{\n"
+   @string foot = " \n}"
+   
+   @string graphvizAutomaton = head + nodeNames + transitions + foot 
+   
+   [graphvizAutomaton  writeToFile !"test.dot"]
+   
 }
