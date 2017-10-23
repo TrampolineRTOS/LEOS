@@ -1,0 +1,647 @@
+class @automatonNode {
+  @string name 
+}
+
+class @automatonTransition{
+  @automatonNode source 
+  @automatonNode target
+  @string guard
+  @string synchronisation
+  @string assignment 
+}
+
+class @automaton {
+  @string name
+  @automatonNode initNode
+  @automatonNodeList nodeList
+  @automatonTransitionList transitionList
+}
+
+list @automatonNodeList { 
+  @automatonNode node
+}
+
+list @automatonTransitionList {
+  @automatonTransition transition %setter
+}
+
+List @automatonList {
+  @automaton automaton
+}
+
+getter @automatonNode getAutonmatonNodeName
+   -> @string result 
+{
+   result = name
+}
+
+#------------- automatonTransition class getters ------------------------------#
+getter @automatonTransition getTransitionGuard 
+   ->@string result 
+{
+   result = guard 
+}
+
+getter @automatonTransition getTransitionSynchronisation
+   ->@string result 
+{
+   result = synchronisation 
+}
+
+getter @automatonTransition getTransitionUpdate
+   ->@string result 
+{
+   result = assignment 
+}
+#------------ sdmlExpression getter (object to string conversion) -------------#
+
+getter @sdmlExpression objToString
+  ->@string result 
+{
+   error .here: "the @sdmExpression expressionType is not defined": result
+}
+
+override getter @sdmlIntegerNode objToString
+  ->@string result 
+{
+   result = [integerValue string]
+}
+
+override getter @sdmlBoolNode objToString
+  ->@string result 
+{
+   result = [boolValue cString]
+}
+
+override getter @sdmlIdentifierNode objToString
+  ->@string result
+{
+   result = [identifierValue string]
+}
+
+override getter @sdmlEqualNode objToString 
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "==" + rightExpString
+}
+
+override getter @sdmlDifferNode objToString 
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "!=" + rightExpString
+}
+
+override getter @sdmlLowerEqualNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "<=" + rightExpString
+}
+
+override getter @sdmlGreaterEqualNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + ">=" + rightExpString
+}
+
+override getter @sdmlLowerNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "<" + rightExpString
+}
+
+override getter @sdmlGreaterNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + ">" + rightExpString
+   
+}
+
+override getter @sdmlAndNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "&" + rightExpString
+}
+
+override getter @sdmlOrNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "|" + rightExpString
+}
+
+override getter @sdmlXorNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "^" + rightExpString
+}
+
+override getter @sdmlShiftLeftNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "<<" + rightExpString
+}
+
+override getter @sdmlShiftRightNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + ">>" + rightExpString
+}
+
+override getter @sdmlAndAndNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "&&" + rightExpString
+}
+
+override getter @sdmlOrOrNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "||" + rightExpString
+}
+
+override getter @sdmlAddNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "+" + rightExpString
+}
+
+override getter @sdmlSubNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "-" + rightExpString
+}
+
+override getter @sdmlMulNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "*" + rightExpString
+}
+
+override getter @sdmlDivNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "/" + rightExpString
+}
+
+override getter @sdmlRemainNode objToString
+  ->@string result 
+{
+   @string leftExpString 
+   @string rightExpString 
+   leftExpString = [left objToString]
+   rightExpString = [right objToString]
+   result = leftExpString + "%" + rightExpString
+}
+
+override getter @sdmlFunctionCallNode objToString
+  ->@string result
+{
+     result = ""
+     for (argument) in arguments do
+      result += [argument objToString]
+     end
+}
+
+method @statement  statementToTransitionLabel
+    ?let @os unused os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+{
+ #  error .here: "the @statement sdmlStatement is not defined":guard
+ #  error .here : "toto":synchronisation
+ #  error .here : "toto":update
+    guard = ""
+    synchronisation = ""
+    update = ""
+}
+ 
+override method @moveFrontStatement statementToTransitionLabel
+    ?let @os unused os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{ 
+   @string ident = [identifier string]
+   @string destinationString = [destination string]
+   guard = ""
+   synchronisation = "insert_in_front!"
+   update = "container := " + destinationString + ",\n" + "object :=" + ident
+}
+
+ 
+ 
+override method @moveBackStatement statementToTransitionLabel
+    ?let @os unused os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string sourceString = [source string]
+   guard = ""
+   synchronisation = "insert_in_back!"
+   update = "container := " + sourceString + ",\n" + "object :=" + ident
+}
+
+override method @assignExpressionStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + "=" + expString
+}
+
+
+override method @assignAddStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + "+=" + expString
+}
+
+override method @assignSubStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + "-=" + expString
+ 
+}
+
+
+override method @assignMulStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + "*=" + expString
+
+ 
+}
+
+override method @assignDivStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + "/=" + expString
+ 
+}
+
+
+override method @assignRemainStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + "%=" + expString
+ 
+}
+
+ 
+override method @assignAndStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + "&=" + expString
+}
+
+
+override method @assignOrStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + "|=" + expString
+ 
+}
+
+ 
+override method @assignShiftLeftStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + "<<" + expString
+ 
+}
+
+override method @assignShiftRightStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string locString = [loc line]
+   @sdmlExpression exp
+   exp = [rightValue sdmlExpression !os]  
+   @string expString
+   expString = [exp objToString]
+   guard = ""
+   synchronisation = ""
+   update = ident + ">>" + expString
+}
+
+override method @assignIncStatement statementToTransitionLabel
+    ?let @os unused os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   guard = ""
+   synchronisation = ""
+   update = ident + "++"
+}
+
+
+override method @assignDecStatement statementToTransitionLabel
+    ?let @os unused os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+  @string ident = [identifier string]
+   guard = ""
+   synchronisation = ""
+   update = ident + "--"
+}
+
+override method @functionCallStatement statementToTransitionLabel
+    ?let @os unused os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+ guard = ""
+ synchronisation = ""
+ update = "" 
+}
+
+override method @ifStatement statementToTransitionLabel
+    ?let @os os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{  
+   @sdmlExpression ifCondition = [condition sdmlExpression !os]
+   @string ifConditionString = [ifCondition objToString]
+   guard = ifConditionString
+   synchronisation = ""
+   update = ""
+}
+  
+override method @moveOutStatement statementToTransitionLabel
+    ?let @os unused os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+ 
+{
+   @string ident = [identifier string]
+   @string nextStateString = [nextState string]
+   guard = ""
+   synchronisation = "extract!"
+   update = "container := " + nextStateString + ",\n" + "object :=" + ident
+}
+
+ 
+method @intermediate_automaton intermadiateModelToExtendedAutomaton
+    ?let @os os
+    !@automaton automaton
+{
+  @string automatonName = name
+  @automatonNode autonmatonInitNode = .new{!initNode.name}
+  @automatonNodeList automatonNodes = .emptyList
+  @automatonTransitionList automatonTransitions = .emptyList
+  @uint i = 0;
+  for () in nodeList do 
+    @automatonNode automatonNode = @automatonNode.new{![nodeList nodeAtIndex !i].name}
+    automatonNodes += !automatonNode
+    i++
+  end 
+  
+  @uint j = 0
+  for () in transitionList do 
+     @automatonNode transitionSource = .new{![transitionList transitionAtIndex !j].source.name}
+     @automatonNode transitionTarget = .new{![transitionList transitionAtIndex !j].target.name}
+     @string transitionGuard
+     @string transitionSynchronisation
+     @string transitionUpdate 
+     
+     [[transitionList transitionAtIndex !j].statement statementToTransitionLabel !os ?transitionGuard ?transitionSynchronisation ?transitionUpdate]
+     @automatonTransition automatonTransition = .new{!transitionSource !transitionTarget !transitionGuard !transitionSynchronisation !transitionUpdate}
+     automatonTransitions += !automatonTransition
+     j++   
+  end 
+  automaton = .new{!automatonName !autonmatonInitNode !automatonNodes !automatonTransitions}
+}
+
+
+method @automaton automatonToGraphviz
+{
+   @string nodeNames = ""
+   for () in nodeList do 
+      @string nodeName = [node getAutonmatonNodeName] + ";"
+      nodeNames += nodeName
+      between  nodeNames += "\n "
+   end
+   
+   @string transitions = " \n"
+   
+   for () in transitionList do 
+     @string transitionSource = [[transition getTransitionSource] getAutonmatonNodeName]
+     @string transitionTarget = [[transition getTransitionTarget] getAutonmatonNodeName]
+     @string transitionGuard = [transition getTransitionGuard]
+     @string transitionSynchronisation = [transition getTransitionSynchronisation]
+     @string transitionUpdate = [transition getTransitionUpdate]
+     @string transit = transitionSource + "->" + transitionTarget + " [" +"label =" +'"' + transitionGuard + "\n" +transitionSynchronisation + "\n" + transitionUpdate + '"' + "]" + ";"
+     transitions += transit
+     between  transitions += "\n "
+   end
+   
+   @string head = "digraph" + " " + name + " " + "{\n"
+   @string foot = " \n}"
+   
+   @string graphvizAutomaton = head + nodeNames + transitions + foot 
+   
+   [graphvizAutomaton  writeToFile !"test.dot"]
+}
+
+
+
+method @automaton automatonToUppaal
+{
+
+
+
+
+
+}
