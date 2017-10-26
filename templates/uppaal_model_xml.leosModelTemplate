@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+%
+
+
+foreach automaton in automataMap do
+  %  <template>\n %
+  %    <name x= "" y= "">% !automaton::NAME %</name> \n%
+  foreach state in automaton::STATES do
+    %      <location id = "%!state::NAME %"% % x="" y =""> \n%
+     %        <name x = "" y = "">% !state::NAME %</name> \n%
+    %      </location>\n%
+  end foreach
+  %      <init ref="%!automaton::INITIAL_STATE::NAME%"/>\n%
+  foreach transition in automaton::TRANSITIONS do
+    %      <transition>\n%
+    %        <source ref ="% !transition::SOURCE::NAME%"/>\n%
+    %        <target ref ="% !transition::TARGET::NAME%"/>\n%
+    if transition::GUARD !="" then
+    %        <label kind = "guard" x="" y="">%!transition::GUARD%</label>\n%
+    end if
+    if transition::SYNCHRONISATION !="" then
+    %        <label kind = "synchronisation" x="" y="">%!transition::SYNCHRONISATION%</label>\n%
+    end if
+    if transition::ASSIGNMENT !="" then
+    %        <label kind = "assignment" x="" y="">%!transition::ASSIGNMENT%</label>\n%
+    end if
+    %      </transition>\n%
+  end foreach
+
+
+  %  </template>\n%
+
+end foreach
+
+%</nta>%

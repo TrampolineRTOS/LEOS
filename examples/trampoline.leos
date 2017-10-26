@@ -42,36 +42,37 @@ os Trampoline {
   
   container extended_task queue ready_queue [ READY ] sorted by priority: > ;
   
+  
   scheduler fixed_priority with extended_task on processor {
     init {}
     method schedule()
     {
-      if (ready_queue.first.priority > busy_processor.running.priority) {
-        busy_processor.running -> ready_queue;
+      if (ready_queue.first.priority > running.priority) {
+        running -> ready_queue;
         idle_processor.running <- ready_queue.first;
       }
     }
-    
-    method activate(extended_task t)
+   
+/*    method activate(extended_task t)
     {
       ready_queue <- t;
       t.activation++;
     }
-    
-    method terminate()
+*/    
+/*    method terminate()
     {
-      busy_processor.running.activation--;
-      if (busy_processor.running.activation == 0) {
-        [ SUSPENDED ] <- busy_processor.running;
+      running.activation--;
+      if (running.activation == 0) {
+        [ SUSPENDED ] <- caller;
       }
       else {
-        [ ] <- busy_processor.running;
+        [ ] <- caller;
       }
     }
-    
+*/    
     method preempt()
     {
-      busy_processor.running -> ready_queue;
+      caller -> ready_queue;
     }
     
     method start()
@@ -81,7 +82,7 @@ os Trampoline {
     
     method block()
     {
-      [ WAITING ] <- busy_processor.running;
+      [ WAITING ] <- caller;
     }
     
     method release(extended_task t)
@@ -185,13 +186,12 @@ os Trampoline {
       check (caller.resources.first == r) : E_OS_NOFUNC
       check (r.priority >= caller.base_priority) : E_OS_ACCESS
     {
-      caller.resources.deleteFirst();
+////      caller.resources.deleteFirst();
 //      r.owner = empty
       if (caller.priority > r.owner_previous_priority) {
         caller.priority = r.owner_previous_priority;
       }
     }
-      
   }
 
 }

@@ -1,5 +1,6 @@
 #--- Prologue routine
 before {
+
 }
 
 #--- 'when' clauses
@@ -8,7 +9,6 @@ message "a source text file with the .leos extension" ?sourceFilePath:@lstring i
 {
   @os os
   grammar leos_grammar in inSourceFile ?os
-#  log os
 
 ################################################################################
   @schedulerDeclarationMap schedMap = [os schedulerDeclarations]
@@ -24,26 +24,59 @@ message "a source text file with the .leos extension" ?sourceFilePath:@lstring i
 #  log aut
   
   [sched methodsToIntermediateAutomatonList !os !?iautList]
-  @intermediate_automaton iaut = [iautList automatonAtIndex !6]
-  log iaut
-  
+  log iautList
+##  @intermediate_automaton iaut = [iautList automatonAtIndex !3]
+##  [iaut automatonToGraphviz]
+
+  ##[sched methodsToIntermediateAutomatonList !os !?iautList]
+  ##@intermediate_automaton iaut = [iautList automatonAtIndex !3]
+  ##@automaton aut 
+  ##[iaut intermadiateModelToExtendedAutomaton !os ?aut]
+  ##[aut automatonToGraphviz]
+
+  ##log aut
+ 
 ################################################################################
+#------------------------------------------------------------------------------#
+  @model uppaalModel = .new{!"uppaal_model" !.emptyMap}
+  @automatonMap auts = .emptyMap
+  for () in iautList do
+     @automaton aut
+     [automaton intermadiateModelToExtendedAutomaton !os ?aut]
+     @lstring clef = @lstring.new{![aut name] !@location.here{}}
+     [!?auts insertAuto !clef !aut]
+  end
+  [!?uppaalModel setAutomata !auts]
+  if not [option leos_options.dryrun value] then
+    @gtlStruct model = [uppaalModel model]
+    leosModelGenerate(!model)
+  end
+#------------------------------------------------------------------------------#
+
   os = [os verify]
   
   
-  if not [option leos_options.dryrun value] then
-    @gtlStruct configuration = [os configuration]
-    leosGenerate(!configuration)
-  #  log configuration; 
+#  if not [option leos_options.dryrun value] then
+#    @gtlStruct configuration = [os configuration]
+#    leosGenerate(!configuration)
+##    log configuration; 
     
-#    addStringValue !?configuration !lstringwith[!"BACKEND"] ![option sdml_options.backend value];
+##    addStringValue !?configuration !lstringwith[!"BACKEND"] ![option sdml_options.backend value];
   
-#    @string result := computeTemplate(!"" !configuration !"root");
-  end
+##    @string result := computeTemplate(!"" !configuration !"root");
+#  end
+  
 }
 
 case . "leosTemplate"
 message "A LEOS template file"
+   ?sourceFilePath:@lstring unused inSourceFile
+{
+}
+
+
+case . "leosModelTemplate"
+message "A LEOS Model template file"
    ?sourceFilePath:@lstring unused inSourceFile
 {
 }

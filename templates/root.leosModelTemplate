@@ -1,0 +1,8 @@
+%
+
+let automataMap := mapof AUTOMATA end
+
+
+write to "/Users/tigori/LEOS/templates/uppaal_model.xml":
+template uppaal_model_xml
+end write

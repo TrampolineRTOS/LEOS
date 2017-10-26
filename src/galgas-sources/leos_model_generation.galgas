@@ -1,0 +1,157 @@
+map @automatonMap {
+   @automaton automaton
+   insert insertAuto error message "automaton %K is already declared in %L"
+   search searchAuto error message "automaton %K is not declared"
+}
+
+class @model {
+   @string name 
+   @automatonMap automata
+}
+
+setter @model setAutomata 
+   ? @automatonMap newAutomata
+{
+   automata = newAutomata
+}
+
+proc leosModelGenerate
+    ?let @gtlStruct cfg
+{
+  # Get the template directory
+  @string templateDirectory = [option leos_options.template_dir value]
+  templateDirectory = [templateDirectory unixPathWithNativePath]
+  templateDirectory = [templateDirectory stringByStandardizingPath]
+  if [templateDirectory directoryExists] then
+    @gtlContext context = .new {
+      !emptylstring()
+      !""
+      !templateDirectory
+      !""
+      !"leosModelTemplate"
+      !.emptyList
+      !.emptyList
+      !true
+      !defaultDebugSettings()
+    }
+    @library lib = emptyLib()
+    @string  leosLog = invokeGTL (
+      !@gtlString.new { 
+          !.here 
+          !lstring(!"root template filename") 
+          ![option leos_options.root value]
+       }
+      !context
+      !cfg
+    )
+  else
+    error .here : "The template directory does not exist"
+  end
+}
+
+
+getter @model model 
+  -> @gtlStruct mdl
+{
+   mdl = @gtlStruct.new { !.here !emptylstring() !.emptyMap }
+   [!?mdl setStructField
+    !@lstring.new { !"MODEL" !.here }
+    !@gtlString.new { !.here !lstring(!"Name of the MODEL") !name }
+   ]
+   [!?mdl setStructField
+    !@lstring.new { !"AUTOMATA" !.here }
+    ![automata fieldMap]
+   ]
+}
+
+
+getter @automatonMap fieldMap
+   ->@gtlStruct result 
+{
+  result = .new { !.here !emptylstring() !.emptyMap }
+  for () in self do
+    [!?result setStructField
+     !lkey
+     ![automaton fieldMap]
+    ]
+  end
+}
+   
+   
+getter @automaton fieldMap
+   ->@gtlStruct result 
+{
+   result = .new { !.here !emptylstring() !.emptyMap }   
+   [!?result setStructField
+    !@lstring.new { !"NAME" !.here }
+    !@gtlString.new { !.here !emptylstring() !name }
+   ]   
+   [!?result setStructField
+    !@lstring.new { !"INITIAL_STATE" !.here }
+    ![initNode fieldMap]
+   ]
+   [!?result setStructField
+    !@lstring.new { !"STATES" !.here }
+    ![nodeList fieldMapList]
+   ]
+   [!?result setStructField
+    !@lstring.new { !"TRANSITIONS" !.here }
+    ![transitionList fieldMapList]
+   ]
+}
+   
+
+getter @automatonNode fieldMap 
+    ->@gtlStruct result
+{
+   result = .new { !.here !emptylstring() !.emptyMap }  
+   [!?result setStructField
+    !@lstring.new { !"NAME" !.here }
+    !@gtlString.new { !.here !emptylstring() !name }
+   ]  
+}
+   
+getter @automatonNodeList fieldMapList
+   ->@gtlList result 
+{
+   @list resultList = .emptyList   
+   for () in self do 
+      resultList += ![node fieldMap]
+   end 
+   result = .new { !.here !emptylstring() !resultList }
+}
+
+
+getter @automatonTransitionList fieldMapList
+   ->@gtlList result 
+{
+    @list resultList = .emptyList    
+    for () in self do   
+      @gtlStruct attrs = .new { !.here !emptylstring() !.emptyMap }    
+      [!?attrs setStructField
+       !@lstring.new { !"SOURCE" !.here }
+       ![[transition source] fieldMap]
+      ]
+      [!?attrs setStructField
+       !@lstring.new { !"TARGET" !.here }
+       ![[transition target] fieldMap]
+      ]      
+      [!?attrs setStructField
+       !@lstring.new { !"GUARD" !.here }
+       !@gtlString.new { !.here !emptylstring() ![transition guard] }
+      ]
+      [!?attrs setStructField
+       !@lstring.new { !"SYNCHRONISATION" !.here }
+       !@gtlString.new { !.here !emptylstring() ![transition synchronisation] }
+      ]
+      [!?attrs setStructField
+       !@lstring.new { !"ASSIGNMENT" !.here }
+       !@gtlString.new { !.here !emptylstring() ![transition assignment] }
+      ]
+      resultList += !attrs   
+    end
+    result = .new { !.here !emptylstring() !resultList }
+}
+
+   
+   
