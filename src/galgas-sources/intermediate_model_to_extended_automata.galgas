@@ -283,6 +283,18 @@ method @statement  statementToTransitionLabel
     update = ""
 }
  
+ 
+override method @initialStatement  statementToTransitionLabel
+    ?let @os unused os
+    !@string guard 
+    !@string synchronisation 
+    !@string update
+{
+    guard = ""
+    synchronisation = initial + "?"
+    update = ""
+}
+
 override method @moveFrontStatement statementToTransitionLabel
     ?let @os unused os
     !@string guard 
@@ -539,9 +551,9 @@ override method @functionCallStatement statementToTransitionLabel
     !@string update
  
 {
- guard = ""
- synchronisation = ""
- update = "" 
+   guard = ""
+   synchronisation = ""
+   update = "" 
 }
 
 override method @ifStatement statementToTransitionLabel

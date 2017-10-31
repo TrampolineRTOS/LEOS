@@ -2,21 +2,29 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
 <nta>
 %
-
+%  <declaration>%
+######################## Channels declaration #############################
+%chan %
+foreach automaton in automataMap do
+   !automaton::NAME
+  between %,\n%
+end foreach %;\n%
+######################## End channels declaration #########################
+%  </declaration>%
 
 foreach automaton in automataMap do
   %  <template>\n %
-  %    <name x= "" y= "">% !automaton::NAME %</name> \n%
+  %    <name x= "" y= "">% !automaton::NAME%_automaton% %</name> \n%
   foreach state in automaton::STATES do
-    %      <location id = "%!state::NAME %"% % x="" y =""> \n%
-     %        <name x = "" y = "">% !state::NAME %</name> \n%
+    %      <location id = "% %state_% !state::NAME %"% % x="" y =""> \n%
+    %        <name x = "" y = "">% %state_% !state::NAME %</name> \n%
     %      </location>\n%
   end foreach
-  %      <init ref="%!automaton::INITIAL_STATE::NAME%"/>\n%
+  %      <init ref="% %state_% !automaton::INITIAL_STATE::NAME%"/>\n%
   foreach transition in automaton::TRANSITIONS do
     %      <transition>\n%
-    %        <source ref ="% !transition::SOURCE::NAME%"/>\n%
-    %        <target ref ="% !transition::TARGET::NAME%"/>\n%
+    %        <source ref ="% %state_% !transition::SOURCE::NAME%"/>\n%
+    %        <target ref ="% %state_% !transition::TARGET::NAME%"/>\n%
     if transition::GUARD !="" then
     %        <label kind = "guard" x="" y="">%!transition::GUARD%</label>\n%
     end if
@@ -29,9 +37,19 @@ foreach automaton in automataMap do
     %      </transition>\n%
   end foreach
 
-
   %  </template>\n%
 
 end foreach
+
+################################### System declaration #############################
+%  <system>%
+%system %
+foreach automaton in automataMap do
+!automaton::NAME%_automaton%
+between %,\n%
+end foreach %;\n%
+%  </system>%
+################################### End system declaration #############################
+
 
 %</nta>%

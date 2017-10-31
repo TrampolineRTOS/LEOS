@@ -21,6 +21,8 @@ class @intermediate_automaton {
 
 class @nullStatement : @statement {@string null}
 
+class @initialStatement : @statement {@string initial}
+
 list @intermediate_automatonNodeList { 
   @intermediate_automatonNode node
 }
@@ -273,11 +275,12 @@ setter @intermediate_automaton finalizeIntermediateAutomatonConstruction #?! @au
   if [nodeList length] > 0 && [transitionList length] > 0 then
      @location loca = @location.here
      @nullStatement null_statement = @nullStatement.new{!loca !"null"}
+     @initialStatement initial_statement = @initialStatement.new{!loca !name}
      @intermediate_automatonNode initialTransitionTarget
      [nodeList first ?initialTransitionTarget]
      initNode = @intermediate_automatonNode.new{!"initial_"+name}
      [!?nodeList insertAtIndex !initNode !0]
-     @intermediate_automatonTransition initialTransition = @intermediate_automatonTransition.new{!initNode !initialTransitionTarget !null_statement}
+     @intermediate_automatonTransition initialTransition = @intermediate_automatonTransition.new{!initNode !initialTransitionTarget !initial_statement}
      [!?transitionList insertAtIndex !initialTransition !0]
      @intermediate_automatonTransition finalTransition = @intermediate_automatonTransition.new{!initNode !initNode !null_statement}
 # [!?transitionList insertAtIndex !finalTransition !0]
